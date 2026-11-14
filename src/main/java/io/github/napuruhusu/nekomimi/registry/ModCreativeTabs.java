@@ -2,6 +2,7 @@ package io.github.napuruhusu.nekomimi.registry;
 
 import io.github.napuruhusu.nekomimi.Nekomimi;
 import io.github.napuruhusu.nekomimi.item.NekoColor;
+import io.github.napuruhusu.nekomimi.item.NekoMetal;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
@@ -16,13 +17,17 @@ public final class ModCreativeTabs {
     public static final RegistryObject<CreativeModeTab> MAIN = TABS.register("main", () ->
             CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup." + Nekomimi.MODID))
-                    .icon(() -> new ItemStack(ModItems.EARS.get(NekoColor.WHITE).get()))
+                    .icon(() -> new ItemStack(ModItems.EARS.get(NekoColor.WHITE).get(NekoMetal.NONE).get()))
                     .displayItems((parameters, output) -> {
                         for (NekoColor color : NekoColor.values()) {
-                            output.accept(ModItems.EARS.get(color).get());
+                            for (NekoMetal metal : NekoMetal.values()) {
+                                output.accept(ModItems.EARS.get(color).get(metal).get());
+                            }
                         }
                         for (NekoColor color : NekoColor.values()) {
-                            output.accept(ModItems.TAILS.get(color).get());
+                            for (NekoMetal metal : NekoMetal.values()) {
+                                output.accept(ModItems.TAILS.get(color).get(metal).get());
+                            }
                         }
                     })
                     .build());

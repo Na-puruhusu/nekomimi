@@ -28,6 +28,16 @@ COLORS = {
 }
 
 
+# Metal versions: surround the cosmetic item with 8 of the ingot (gem for diamond) in a crafting table.
+# They look the same when worn and only gain the armor stats of that metal's helmet / leggings.
+METALS = {
+    "iron": dict(ingot="minecraft:iron_ingot", ja="鉄", en="Iron"),
+    "gold": dict(ingot="minecraft:gold_ingot", ja="金", en="Gold"),
+    "diamond": dict(ingot="minecraft:diamond", ja="ダイヤモンド", en="Diamond"),
+    "netherite": dict(ingot="minecraft:netherite_ingot", ja="ネザライト", en="Netherite"),
+}
+
+
 def rgb(hex_color):
     h = hex_color.lstrip("#")
     return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4)) + (255,)
@@ -187,6 +197,37 @@ def main():
             else:
                 lang_ja[f"item.{MODID}.{item_id}"] = f"{p['ja']}猫のしっぽ"
                 lang_en[f"item.{MODID}.{item_id}"] = f"{p['en']} Cat Tail"
+
+    for color_id, p in COLORS.items():
+        for kind in ("nekomimi", "neko_tail"):
+            base_id = f"{kind}_{color_id}"
+            for metal_id, m in METALS.items():
+                item_id = f"{base_id}_{metal_id}"
+
+                # same icon as the cosmetic version
+                write_json(ASSETS / f"models/item/{item_id}.json", {
+                    "parent": "minecraft:item/generated",
+                    "textures": {"layer0": f"{MODID}:item/{base_id}"},
+                })
+
+                # ring recipe: cosmetic item in the middle, 8 ingots around it
+                write_json(DATA / f"recipes/{item_id}.json", {
+                    "type": "minecraft:crafting_shaped",
+                    "category": "equipment",
+                    "pattern": ["III", "IXI", "III"],
+                    "key": {
+                        "I": {"item": m["ingot"]},
+                        "X": {"item": f"{MODID}:{base_id}"},
+                    },
+                    "result": {"item": f"{MODID}:{item_id}"},
+                })
+
+                if kind == "nekomimi":
+                    lang_ja[f"item.{MODID}.{item_id}"] = f"{p['ja']}猫耳（{m['ja']}）"
+                    lang_en[f"item.{MODID}.{item_id}"] = f"{p['en']} Cat Ears ({m['en']})"
+                else:
+                    lang_ja[f"item.{MODID}.{item_id}"] = f"{p['ja']}猫のしっぽ（{m['ja']}）"
+                    lang_en[f"item.{MODID}.{item_id}"] = f"{p['en']} Cat Tail ({m['en']})"
 
     write_json(ASSETS / "lang/ja_jp.json", lang_ja)
     write_json(ASSETS / "lang/en_us.json", lang_en)

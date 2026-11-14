@@ -14,6 +14,7 @@ import java.util.function.Consumer;
 /**
  * A wearable cat ear / cat tail.
  * Ears use the head slot and the tail uses the legs slot, and both are drawn with a custom model.
+ * The metal decides the armor stats only; the worn look depends on the color alone.
  */
 public class NekoAccessoryItem extends ArmorItem {
 
@@ -29,22 +30,26 @@ public class NekoAccessoryItem extends ArmorItem {
             this.prefix = prefix;
         }
 
+        /** Id of the cosmetic version, which is also the base name of the textures. */
         public String itemId(NekoColor color) {
             return prefix + "_" + color.getId();
         }
+
+        public String itemId(NekoColor color, NekoMetal metal) {
+            return metal == NekoMetal.NONE ? itemId(color) : itemId(color) + "_" + metal.getId();
+        }
     }
 
-    private final Kind kind;
     private final String armorTexture;
 
-    public NekoAccessoryItem(Kind kind, NekoColor color) {
-        super(NekoArmorMaterial.INSTANCE, kind.armorType, new Item.Properties().stacksTo(1));
-        this.kind = kind;
+    public NekoAccessoryItem(Kind kind, NekoColor color, NekoMetal metal) {
+        super(metal.material(), kind.armorType, properties(metal));
         this.armorTexture = Nekomimi.MODID + ":textures/models/armor/" + kind.itemId(color) + ".png";
     }
 
-    public Kind getKind() {
-        return kind;
+    private static Item.Properties properties(NekoMetal metal) {
+        Item.Properties properties = new Item.Properties().stacksTo(1);
+        return metal.isFireResistant() ? properties.fireResistant() : properties;
     }
 
     @Override
@@ -52,8 +57,9 @@ public class NekoAccessoryItem extends ArmorItem {
         return armorTexture;
     }
 
+    // Note: Forge calls this from inside the Item constructor, so no field of this class may be used here.
     @Override
     public void initializeClient(Consumer<IClientItemExtensions> consumer) {
-        consumer.accept(NekoClientExtensions.of(kind));
+        consumer.accept(NekoClientExtensions.INSTANCE);
     }
 }

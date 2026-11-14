@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "III",
+    "IXI",
+    "III"
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:diamond"
+    },
+    "X": {
+      "item": "nekomimi:neko_tail_white"
+    }
+  },
+  "result": {
+    "item": "nekomimi:neko_tail_white_diamond"
+  }
+}

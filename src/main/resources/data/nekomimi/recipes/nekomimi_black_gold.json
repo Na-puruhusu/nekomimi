@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "III",
+    "IXI",
+    "III"
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:gold_ingot"
+    },
+    "X": {
+      "item": "nekomimi:nekomimi_black"
+    }
+  },
+  "result": {
+    "item": "nekomimi:nekomimi_black_gold"
+  }
+}

@@ -1,0 +1,14 @@
+-proc:none
+-d
+/tmp/claude-0/-home-claude/f0ca7be9-9f85-5373-8c1a-a548678b9be5/scratchpad/javac-out
+src/main/java/io/github/napuruhusu/nekomimi/Nekomimi.java
+src/main/java/io/github/napuruhusu/nekomimi/item/NekoArmorMaterial.java
+src/main/java/io/github/napuruhusu/nekomimi/item/NekoMetal.java
+src/main/java/io/github/napuruhusu/nekomimi/item/NekoColor.java
+src/main/java/io/github/napuruhusu/nekomimi/item/NekoAccessoryItem.java
+src/main/java/io/github/napuruhusu/nekomimi/registry/ModCreativeTabs.java
+src/main/java/io/github/napuruhusu/nekomimi/registry/ModItems.java
+src/main/java/io/github/napuruhusu/nekomimi/client/NekoClientExtensions.java
+src/main/java/io/github/napuruhusu/nekomimi/client/NekoModels.java
+src/main/java/io/github/napuruhusu/nekomimi/client/CatAccessoryModel.java
+src/main/java/io/github/napuruhusu/nekomimi/client/ClientSetup.java
