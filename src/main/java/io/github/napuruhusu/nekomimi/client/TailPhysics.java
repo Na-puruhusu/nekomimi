@@ -1,8 +1,10 @@
 package io.github.napuruhusu.nekomimi.client;
 
+import io.github.napuruhusu.nekomimi.state.NekoStates;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -39,9 +41,21 @@ public final class TailPhysics {
         float lastYaw;
     }
 
+    /**
+     * Which pose and way of moving the tail has right now: the emotion of a player in cat mode,
+     * otherwise stretched straight out while sprinting, otherwise the normal hanging tail.
+     */
+    private static TailStyle styleFor(LivingEntity entity) {
+        if (entity instanceof Player player && NekoStates.usesCatBody(player)) {
+            return TailStyles.forEmotion(NekoStates.get(player).emotion());
+        }
+        return entity.isSprinting() ? TailStyles.SPRINT : TailStyles.NORMAL;
+    }
+
     /** Brings the wearer's tail up to date for this frame and returns it. Safe to call several times per frame. */
     public static TailSimulation update(LivingEntity entity) {
         Tracker tracker = TRACKERS.computeIfAbsent(entity, e -> new Tracker());
+        tracker.simulation.setStyle(styleFor(entity));
 
         float partial = Minecraft.getInstance().getFrameTime();
         float now = entity.tickCount + partial;

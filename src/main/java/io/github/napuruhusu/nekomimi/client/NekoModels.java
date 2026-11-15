@@ -24,8 +24,10 @@ import net.minecraft.resources.ResourceLocation;
  *   tail stripe   texOffs(0, 12)  2x2x2   (same as fur unless the color has stripes)
  *   tail tip      texOffs(8, 8)   2x2x2
  *
- * The tail is a chain of TailSimulation.SEGMENTS boxes, each a child of the previous one, so that
- * bending one joint carries all the segments after it. TailSimulation sets the angles every frame.
+ * The tail is TailSimulation.SEGMENTS boxes, all direct children of the body. They are not nested:
+ * CatAccessoryModel works out the position and rotation of every segment from the joint angles
+ * each frame. That way a segment can be made wider (puffed fur) without the width stacking up
+ * along the chain, which it would if every segment were a child of the one before.
  */
 public final class NekoModels {
     public static final ModelLayerLocation EARS_LAYER =
@@ -42,7 +44,7 @@ public final class NekoModels {
     private NekoModels() {
     }
 
-    /** Name of the part for tail segment i. It is a child of the previous segment (the first one of the body). */
+    /** Name of the part for tail segment i (0 = root). All of them are children of the body part. */
     public static String tailPartName(int segment) {
         return "tail_" + segment;
     }
@@ -81,9 +83,6 @@ public final class NekoModels {
 
         PartDefinition body = root.addOrReplaceChild("body", CubeListBuilder.create(), PartPose.ZERO);
 
-        // The first joint sits on the lower back; every further joint sits at the end of the previous
-        // segment. The poses here are only the rest pose: TailSimulation overwrites the angles per frame.
-        PartDefinition parent = body;
         for (int i = 0; i < TailSimulation.SEGMENTS; i++) {
             // Thinner toward the tip. The extra length overlaps neighbouring segments so no gap
             // shows on the outside of a bend.
@@ -92,11 +91,8 @@ public final class NekoModels {
             CubeListBuilder cube = CubeListBuilder.create().texOffs(uv[0], uv[1])
                     .addBox(-1.0F, 0.0F, -1.0F, 2.0F, TailSimulation.SEGMENT_LENGTH, 2.0F,
                             new CubeDeformation(thickness, 0.2F, thickness));
-            PartPose pose = i == 0
-                    ? PartPose.offsetAndRotation(0.0F, 10.0F, 2.0F, TailSimulation.restPitch(i), 0.0F, 0.0F)
-                    : PartPose.offsetAndRotation(0.0F, TailSimulation.SEGMENT_LENGTH, 0.0F,
-                            TailSimulation.restPitch(i), 0.0F, 0.0F);
-            parent = parent.addOrReplaceChild(tailPartName(i), cube, pose);
+            // The pose is set every frame by CatAccessoryModel.applyTail.
+            body.addOrReplaceChild(tailPartName(i), cube, PartPose.ZERO);
         }
 
         addEmptyLimbs(root);

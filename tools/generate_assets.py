@@ -156,6 +156,44 @@ def main():
     lang_ja = {"itemGroup.nekomimi": "猫耳としっぽ"}
     lang_en = {"itemGroup.nekomimi": "Nekomimi"}
 
+    # Controls, messages and the emotion menu (cat mode).
+    lang_ja.update({
+        "key.categories.nekomimi": "猫耳としっぽ",
+        "key.nekomimi.emotion_menu": "感情メニューを開く（猫モード）",
+        "key.nekomimi.toggle_mode": "モード切り替え（Alt＋右クリックでも可）",
+        "message.nekomimi.mode.cat": "猫モード",
+        "message.nekomimi.mode.normal": "通常モード",
+        "message.nekomimi.no_space": "ここでは立ち上がれません",
+        "message.nekomimi.need_cat_mode": "感情は猫モードで選べます（Alt＋右クリックで切り替え）",
+        "nekomimi.emotion.title": "今の気持ち",
+        "nekomimi.emotion.none": "ふつう",
+        "nekomimi.emotion.happy": "嬉しい",
+        "nekomimi.emotion.relaxed": "リラックス",
+        "nekomimi.emotion.annoyed": "イライラ",
+        "nekomimi.emotion.scared": "怖い",
+        "nekomimi.emotion.surprised": "驚き・威嚇",
+        "nekomimi.emotion.interested": "興味",
+        "nekomimi.emotion.affectionate": "甘えたい",
+    })
+    lang_en.update({
+        "key.categories.nekomimi": "Nekomimi",
+        "key.nekomimi.emotion_menu": "Open emotion menu (cat mode)",
+        "key.nekomimi.toggle_mode": "Switch mode (also Alt + right click)",
+        "message.nekomimi.mode.cat": "Cat mode",
+        "message.nekomimi.mode.normal": "Normal mode",
+        "message.nekomimi.no_space": "There is no room to stand up here",
+        "message.nekomimi.need_cat_mode": "Emotions are picked in cat mode (Alt + right click to switch)",
+        "nekomimi.emotion.title": "Mood",
+        "nekomimi.emotion.none": "Normal",
+        "nekomimi.emotion.happy": "Happy",
+        "nekomimi.emotion.relaxed": "Relaxed",
+        "nekomimi.emotion.annoyed": "Annoyed",
+        "nekomimi.emotion.scared": "Scared",
+        "nekomimi.emotion.surprised": "Startled",
+        "nekomimi.emotion.interested": "Curious",
+        "nekomimi.emotion.affectionate": "Affectionate",
+    })
+
     for color_id, p in COLORS.items():
         for kind in ("nekomimi", "neko_tail"):
             item_id = f"{kind}_{color_id}"
