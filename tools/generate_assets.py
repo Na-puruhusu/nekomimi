@@ -80,14 +80,12 @@ def armor_texture(kind, p):
         paint_cube(img, 10, 0, 1, 1, 2, base)
         rect(img, 10 + 2, 2, 1, 1, inner)
     else:
-        # tail base 2x6x2 at (0,8), tip 2x4x2 at (8,8)
-        paint_cube(img, 0, 8, 2, 6, 2, base)
-        paint_cube(img, 8, 8, 2, 4, 2, tip, top=lighten(tip), bottom=darken(tip), side=darken(tip, 0.07))
-        if p["stripe"]:
-            stripe = rgb(p["stripe"])
-            for row in (1, 3):
-                y = 8 + 2 + row
-                rect(img, 0, y, 8, 1, stripe)   # right, front, left, back faces of the base
+        # The tail is a chain of 2x2x2 segments (see NekoModels.TAIL_UV):
+        # fur at (0,8), stripe at (0,12), tip at (8,8). Colors without stripes use the fur color for both.
+        stripe = rgb(p["stripe"]) if p["stripe"] else base
+        paint_cube(img, 0, 8, 2, 2, 2, base)
+        paint_cube(img, 0, 12, 2, 2, 2, stripe)
+        paint_cube(img, 8, 8, 2, 2, 2, tip, top=lighten(tip), bottom=darken(tip), side=darken(tip, 0.07))
     return img
 
 

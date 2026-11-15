@@ -3,6 +3,7 @@ package io.github.napuruhusu.nekomimi.client;
 import io.github.napuruhusu.nekomimi.Nekomimi;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.PartPose;
+import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
@@ -17,10 +18,14 @@ import net.minecraft.resources.ResourceLocation;
  * Texture sheet is 64x32.
  *
  * UV layout:
- *   ear base   texOffs(0, 0)   3x2x2
- *   ear tip    texOffs(10, 0)  1x1x2
- *   tail base  texOffs(0, 8)   2x6x2
- *   tail tip   texOffs(8, 8)   2x4x2
+ *   ear base      texOffs(0, 0)   3x2x2
+ *   ear tip       texOffs(10, 0)  1x1x2
+ *   tail fur      texOffs(0, 8)   2x2x2   (main color)
+ *   tail stripe   texOffs(0, 12)  2x2x2   (same as fur unless the color has stripes)
+ *   tail tip      texOffs(8, 8)   2x2x2
+ *
+ * The tail is a chain of TailSimulation.SEGMENTS boxes, each a child of the previous one, so that
+ * bending one joint carries all the segments after it. TailSimulation sets the angles every frame.
  */
 public final class NekoModels {
     public static final ModelLayerLocation EARS_LAYER =
@@ -28,7 +33,18 @@ public final class NekoModels {
     public static final ModelLayerLocation TAIL_LAYER =
             new ModelLayerLocation(new ResourceLocation(Nekomimi.MODID, "neko_tail"), "main");
 
+    private static final int[] FUR = {0, 8};
+    private static final int[] STRIPE = {0, 12};
+    private static final int[] TIP = {8, 8};
+    /** Texture offset of each tail segment, from the root to the tip. */
+    private static final int[][] TAIL_UV = {FUR, STRIPE, FUR, STRIPE, TIP, TIP};
+
     private NekoModels() {
+    }
+
+    /** Name of the part for tail segment i. It is a child of the previous segment (the first one of the body). */
+    public static String tailPartName(int segment) {
+        return "tail_" + segment;
     }
 
     public static LayerDefinition createEarsLayer() {
@@ -64,17 +80,24 @@ public final class NekoModels {
         addEmpty(root, "hat", PartPose.ZERO);
 
         PartDefinition body = root.addOrReplaceChild("body", CubeListBuilder.create(), PartPose.ZERO);
-        // Pivot at the lower back. "tail_root" is swayed left/right at render time.
-        PartDefinition tailRoot = body.addOrReplaceChild("tail_root", CubeListBuilder.create(),
-                PartPose.offset(0.0F, 10.0F, 2.0F));
-        // Base segment points backwards and downwards.
-        PartDefinition tail = tailRoot.addOrReplaceChild("tail",
-                CubeListBuilder.create().texOffs(0, 8).addBox(-1.0F, 0.0F, -1.0F, 2.0F, 6.0F, 2.0F),
-                PartPose.rotation(0.9F, 0.0F, 0.0F));
-        // Tip segment curls back up.
-        tail.addOrReplaceChild("tail_tip",
-                CubeListBuilder.create().texOffs(8, 8).addBox(-1.0F, 0.0F, -1.0F, 2.0F, 4.0F, 2.0F),
-                PartPose.offsetAndRotation(0.0F, 6.0F, 0.0F, 1.0F, 0.0F, 0.0F));
+
+        // The first joint sits on the lower back; every further joint sits at the end of the previous
+        // segment. The poses here are only the rest pose: TailSimulation overwrites the angles per frame.
+        PartDefinition parent = body;
+        for (int i = 0; i < TailSimulation.SEGMENTS; i++) {
+            // Thinner toward the tip. The extra length overlaps neighbouring segments so no gap
+            // shows on the outside of a bend.
+            float thickness = 0.1F - 0.04F * i;
+            int[] uv = TAIL_UV[i];
+            CubeListBuilder cube = CubeListBuilder.create().texOffs(uv[0], uv[1])
+                    .addBox(-1.0F, 0.0F, -1.0F, 2.0F, TailSimulation.SEGMENT_LENGTH, 2.0F,
+                            new CubeDeformation(thickness, 0.2F, thickness));
+            PartPose pose = i == 0
+                    ? PartPose.offsetAndRotation(0.0F, 10.0F, 2.0F, TailSimulation.restPitch(i), 0.0F, 0.0F)
+                    : PartPose.offsetAndRotation(0.0F, TailSimulation.SEGMENT_LENGTH, 0.0F,
+                            TailSimulation.restPitch(i), 0.0F, 0.0F);
+            parent = parent.addOrReplaceChild(tailPartName(i), cube, pose);
+        }
 
         addEmptyLimbs(root);
         return LayerDefinition.create(mesh, 64, 32);

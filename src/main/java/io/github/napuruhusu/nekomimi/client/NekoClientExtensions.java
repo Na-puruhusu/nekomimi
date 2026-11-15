@@ -41,7 +41,7 @@ public final class NekoClientExtensions implements IClientItemExtensions {
         // Copy the wearer's current pose (head rotation, sneaking, riding, baby scale...).
         ((HumanoidModel) original).copyPropertiesTo(model);
         if (tail) {
-            model.animateTail(entity);
+            model.applyTail(TailPhysics.update(entity));
         }
         return model;
     }
