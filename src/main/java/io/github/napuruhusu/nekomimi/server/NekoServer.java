@@ -8,6 +8,7 @@ import io.github.napuruhusu.nekomimi.state.NekoStates;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.network.PacketDistributor;
 
 /** Server side rules for changing the mode and emotion. Never trusts the client's numbers. */
@@ -28,7 +29,7 @@ public final class NekoServer {
         }
 
         // Going back to the normal body needs room to stand up.
-        if (old.cat() && !wantCat && !player.canEnterPose(Pose.STANDING)) {
+        if (old.cat() && !wantCat && !canStandUp(player)) {
             player.displayClientMessage(Component.translatable("message.nekomimi.no_space"), true);
             return;
         }
@@ -41,6 +42,15 @@ public final class NekoServer {
             player.displayClientMessage(Component.translatable(
                     next.cat() ? "message.nekomimi.mode.cat" : "message.nekomimi.mode.normal"), true);
         }
+    }
+
+    /**
+     * Whether the normal standing body would fit where the player is. getDimensions(Pose) is the
+     * vanilla size and does not include the smaller cat hitbox, so it works while still in cat mode.
+     */
+    private static boolean canStandUp(ServerPlayer player) {
+        AABB standing = player.getDimensions(Pose.STANDING).makeBoundingBox(player.position());
+        return player.level().noCollision(player, standing.deflate(1.0E-7D));
     }
 
     /** Sends the state of this player to the player and to everyone tracking them. */

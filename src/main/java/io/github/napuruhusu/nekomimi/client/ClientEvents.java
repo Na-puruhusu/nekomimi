@@ -60,10 +60,8 @@ public final class ClientEvents {
     /** Draws a player in cat mode with the cat renderer instead of the normal one. */
     @SubscribeEvent
     public static void onRenderPlayer(RenderPlayerEvent.Pre event) {
-        // The cat renderer is itself a player renderer and raises this event too. Let it through.
-        if (event.getRenderer() instanceof CatPlayerRenderer
-                || !(event.getEntity() instanceof AbstractClientPlayer player)
-                || !NekoStates.usesCatBody(player)) {
+        // The cat renderer is not a PlayerRenderer, so drawing with it does not raise this event again.
+        if (!(event.getEntity() instanceof AbstractClientPlayer player) || !NekoStates.usesCatBody(player)) {
             return;
         }
         CatPlayerRenderer renderer = CatPlayerRenderers.get(player);
