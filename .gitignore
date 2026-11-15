@@ -18,3 +18,6 @@ bin/
 # OS
 .DS_Store
 Thumbs.db
+
+# javac argument files left behind by failed compiles
+javac.*.args
