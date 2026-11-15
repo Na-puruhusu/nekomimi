@@ -22,26 +22,26 @@ public final class TailSimulation {
     /** Relative pitch of each joint at rest. Gives a tail that hangs back and curls up at the tip. */
     private static final float[] REST_PITCH = {0.45F, 0.20F, 0.20F, 0.25F, 0.35F, 0.45F};
 
-    private static final float STIFFNESS_ROOT = 90.0F;
-    private static final float STIFFNESS_TIP = 40.0F;
-    private static final float DAMPING_RATIO = 0.30F;
+    private static final float STIFFNESS_ROOT = 70.0F;
+    private static final float STIFFNESS_TIP = 25.0F;
+    private static final float DAMPING_RATIO = 0.25F;
 
     // How strongly motion bends the whole chain (radians per unit, summed over all joints).
-    private static final float PITCH_PER_FORWARD_SPEED = 0.07F;
-    private static final float PITCH_PER_UP_SPEED = 0.05F;
-    private static final float SIDE_PER_LEFT_SPEED = 0.10F;
-    private static final float SIDE_PER_YAW_RATE = 0.05F;
-    private static final float MAX_PITCH_DRIVE = 0.9F;
-    private static final float MAX_SIDE_DRIVE = 0.8F;
+    private static final float PITCH_PER_FORWARD_SPEED = 0.12F;
+    private static final float PITCH_PER_UP_SPEED = 0.08F;
+    private static final float SIDE_PER_LEFT_SPEED = 0.22F;
+    private static final float SIDE_PER_YAW_RATE = 0.09F;
+    private static final float MAX_PITCH_DRIVE = 1.2F;
+    private static final float MAX_SIDE_DRIVE = 1.0F;
     private static final float MAX_YAW_RATE = 15.0F;
 
     // Idle sway and walking sway, per joint.
-    private static final float IDLE_SIDE = 0.06F;
+    private static final float IDLE_SIDE = 0.11F;
     private static final float IDLE_SIDE_RATE = 2.1F;
     private static final float IDLE_LAG = 0.6F;
-    private static final float IDLE_PITCH = 0.015F;
+    private static final float IDLE_PITCH = 0.03F;
     private static final float IDLE_PITCH_RATE = 0.9F;
-    private static final float WALK_SIDE = 0.04F;
+    private static final float WALK_SIDE = 0.08F;
     private static final float WALK_PHASE_PER_BLOCK = 2.2F;
 
     private static final float INPUT_SMOOTHING = 0.05F;
@@ -54,7 +54,7 @@ public final class TailSimulation {
     private static final int MAX_SUBSTEPS = 16;
 
     private static final float MAX_RELATIVE_PITCH = 0.8F;
-    private static final float MAX_SIDE = 0.6F;
+    private static final float MAX_SIDE = 0.8F;
     private static final float ROOT_MIN_PITCH = 0.05F;
     private static final float ROOT_MAX_PITCH = 1.5F;
 
