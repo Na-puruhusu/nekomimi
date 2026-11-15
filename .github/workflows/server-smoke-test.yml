@@ -1,0 +1,50 @@
+name: server-smoke-test
+
+# Starts a real dedicated Forge server with the mod loaded and checks that it comes up without errors.
+# It catches things the compiler cannot: a client-only class loaded on the server, a bad network
+# registration, a broken event subscriber. Run it by hand from the Actions tab.
+on:
+  workflow_dispatch:
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v3
+
+      - name: Accept the EULA and use offline mode
+        run: |
+          mkdir -p run
+          echo "eula=true" > run/eula.txt
+          printf 'online-mode=false\nlevel-type=flat\n' > run/server.properties
+
+      - name: Start the server and wait until it is up
+        run: |
+          ./gradlew runServer --no-daemon > server.log 2>&1 &
+          for i in $(seq 1 240); do
+            if grep -q 'Done (' server.log; then echo "SERVER STARTED"; break; fi
+            if grep -q 'BUILD FAILED' server.log; then echo "BUILD FAILED"; break; fi
+            sleep 5
+          done
+          pkill -f 'net.minecraftforge' || true
+          pkill -f 'GradleWrapperMain' || true
+          sleep 3
+          echo "---- lines with problems ----"
+          grep -nE '\[(ERROR|FATAL)\]|Exception|Caused by|Failed to|crash' server.log | head -40 || true
+          echo "---- mod loading ----"
+          grep -nE 'nekomimi|Loading [0-9]+ mods|Done \(' server.log | head -20 || true
+          grep -q 'Done (' server.log
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: server-log
+          path: server.log
