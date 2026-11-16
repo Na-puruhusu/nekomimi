@@ -42,6 +42,16 @@ public final class TailStyle {
     /** Width of the tail (1 = normal). Used to puff the fur up. */
     float thickness = 1.0F;
 
+    /**
+     * Fur. furLength: how long the fur is compared with normal (long = bristled). furSway: how much the
+     * fur is blown about by movement (0 = stiff). furShiver: trembling of the fur (model units).
+     * furDroop: how far the fur sinks under its own weight (model units; sleek and soft = more).
+     */
+    float furLength = 1.0F;
+    float furSway = 1.0F;
+    float furShiver = 0.0F;
+    float furDroop = 0.25F;
+
     /** Limits for the first joint, so the tail does not go through the body. */
     float rootMin = 0.05F;
     float rootMax = 1.5F;
@@ -104,6 +114,14 @@ public final class TailStyle {
 
     TailStyle thick(float thickness) {
         this.thickness = thickness;
+        return this;
+    }
+
+    TailStyle fur(float length, float sway, float shiver, float droop) {
+        this.furLength = length;
+        this.furSway = sway;
+        this.furShiver = shiver;
+        this.furDroop = droop;
         return this;
     }
 }

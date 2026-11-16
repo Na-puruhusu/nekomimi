@@ -31,7 +31,8 @@ public final class TailStyles {
     public static final TailStyle HAPPY = TailStyle.cat(new float[]{1.45F, 0.00F, 0.00F, 0.02F, 0.04F, 0.06F})
             .idle(0.03F, 3.5F, 0.5F, 0.01F)
             .motion(0.3F, 0.5F)
-            .springs(1.4F, 1.0F);
+            .springs(1.4F, 1.0F)
+            .fur(1.0F, 1.0F, 0.0F, 0.2F);
 
     /** Relaxed: let down beside the body, loose. */
     public static final TailStyle RELAXED = TailStyle.cat(
@@ -39,26 +40,30 @@ public final class TailStyles {
                     new float[]{0.10F, 0.12F, 0.12F, 0.12F, 0.10F, 0.10F})
             .idle(0.04F, 1.1F, 0.5F, 0.01F)
             .motion(0.3F, 0.5F)
-            .springs(0.6F, 1.0F);
+            .springs(0.6F, 1.0F)
+            .fur(0.75F, 1.5F, 0.0F, 0.45F);
 
     /** Annoyed: held low and lashed hard from side to side. */
     public static final TailStyle ANNOYED = TailStyle.cat(new float[]{0.20F, 0.00F, 0.00F, 0.00F, 0.00F, 0.00F})
             .idle(0.22F, 7.5F, 0.25F, 0.02F)
             .motion(0.3F, 0.3F)
-            .springs(1.0F, 1.0F);
+            .springs(1.0F, 1.0F)
+            .fur(1.1F, 1.0F, 0.0F, 0.2F);
 
     /** Scared: curled under the belly between the hind legs, trembling. */
     public static final TailStyle SCARED = TailStyle.cat(new float[]{0.00F, -0.60F, -0.65F, -0.65F, -0.55F, -0.50F})
             .idle(0.03F, 26.0F, 0.3F, 0.02F)
             .motion(0.3F, 0.3F)
-            .springs(1.2F, 1.0F);
+            .springs(1.2F, 1.0F)
+            .fur(1.25F, 1.0F, 0.2F, 0.15F);
 
     /** Startled or threatening: arched up and over the back with the fur puffed out thick. */
     public static final TailStyle SURPRISED = TailStyle.cat(new float[]{1.00F, 0.45F, 0.35F, 0.30F, 0.30F, 0.30F})
             .idle(0.02F, 12.0F, 0.3F, 0.02F)
             .motion(0.3F, 0.3F)
             .springs(1.5F, 1.0F)
-            .thick(1.9F);
+            .thick(1.4F)
+            .fur(1.6F, 0.3F, 0.05F, 0.0F);
 
     /** Interested: held low and still, only the tip flicks. */
     public static final TailStyle INTERESTED = TailStyle.cat(new float[]{0.00F, -0.05F, -0.05F, -0.05F, 0.00F, 0.00F})
@@ -73,7 +78,8 @@ public final class TailStyles {
                     new float[]{0.45F, 0.50F, 0.50F, 0.50F, 0.50F, 0.50F})
             .idle(0.03F, 1.2F, 0.5F, 0.01F)
             .motion(0.3F, 0.5F)
-            .springs(0.8F, 1.0F);
+            .springs(0.8F, 1.0F)
+            .fur(0.9F, 1.3F, 0.0F, 0.3F);
 
     private TailStyles() {
     }

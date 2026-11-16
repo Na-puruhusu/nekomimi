@@ -4,27 +4,87 @@ import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.world.entity.LivingEntity;
 
-/** Humanoid-shaped model that only draws the cat ears (head) or the cat tail (body). */
+/**
+ * Humanoid-shaped model that only draws the cat ears (head) or the cat tail (body).
+ *
+ * Both are made of fur shells (see {@link FurLayout}): FurLayout.LAYERS boxes per part, built
+ * TEXELS times too large and scaled down here. Each frame the shells of a part get the same pose and
+ * are then pushed apart a little by the fur sway of the wearer's motion (outer layers more), and
+ * stretched or shrunk for the length of the fur (long when startled, sleek when relaxed).
+ */
 public class CatAccessoryModel extends HumanoidModel<LivingEntity> {
     /** Where the tail is attached, in the frame of the body part (the lower back). */
     private static final float ROOT_X = 0.0F;
     private static final float ROOT_Y = 10.0F;
     private static final float ROOT_Z = 2.0F;
 
-    /** The tail segments from the root to the tip, or null for the ears. */
-    private final ModelPart[] tail;
+    /** How much of the tail's fur sway the ears get (their fur is shorter). */
+    private static final float EAR_SWAY = 0.6F;
+
+    /** The tail segments from the root to the tip, each with its fur layers, or null for the ears. */
+    private final ModelPart[][] tail;
+    /** The ear pieces: [side][0 = base, 1 = tip][layer], or null for the tail. */
+    private final ModelPart[][][] ears;
 
     public CatAccessoryModel(ModelPart root, boolean withTail) {
         super(root);
         if (withTail) {
-            tail = new ModelPart[TailSimulation.SEGMENTS];
+            tail = new ModelPart[TailSimulation.SEGMENTS][FurLayout.LAYERS];
             ModelPart body = root.getChild("body");
             for (int i = 0; i < tail.length; i++) {
-                tail[i] = body.getChild(NekoModels.tailPartName(i));
+                for (int k = 0; k < FurLayout.LAYERS; k++) {
+                    tail[i][k] = body.getChild(NekoModels.tailPartName(i, k));
+                }
             }
+            ears = null;
         } else {
             tail = null;
+            ears = new ModelPart[2][2][FurLayout.LAYERS];
+            ModelPart head = root.getChild("head");
+            for (int side = 0; side < 2; side++) {
+                for (int k = 0; k < FurLayout.LAYERS; k++) {
+                    ears[side][0][k] = head.getChild(NekoModels.earPartName(side, false, k));
+                    ears[side][1][k] = head.getChild(NekoModels.earPartName(side, true, k));
+                }
+            }
         }
+    }
+
+    /**
+     * Sets the fur of the ears for this frame: how long it is and how far the wearer's motion has pushed it.
+     * The simulation is the wearer's tail simulation, which also tracks the fur.
+     */
+    public void applyEars(TailSimulation simulation) {
+        if (ears == null) {
+            return;
+        }
+        float furLength = simulation.getFurLength();
+        for (int side = 0; side < 2; side++) {
+            for (int piece = 0; piece < 2; piece++) {
+                boolean tip = piece == 1;
+                float[] center = tip ? NekoModels.EAR_TIP_CENTER[side] : NekoModels.EAR_BASE_CENTER[side];
+                float halfX = (tip ? FurLayout.EAR_TIP_WIDTH : FurLayout.EAR_BASE_WIDTH) / 2.0F;
+                float halfY = (tip ? FurLayout.EAR_TIP_HEIGHT : FurLayout.EAR_BASE_HEIGHT) / 2.0F;
+                float halfZ = (tip ? FurLayout.EAR_TIP_DEPTH : FurLayout.EAR_BASE_DEPTH) / 2.0F;
+                for (int k = 0; k < FurLayout.LAYERS; k++) {
+                    float grow = FurLayout.grow(k, FurLayout.EAR_FUR_LENGTH);
+                    ModelPart part = ears[side][piece][k];
+                    float reach = (float) Math.pow(FurLayout.depth(k), 1.5D) * EAR_SWAY;
+                    part.setPos(center[0] + simulation.getFurOffset(0) * reach,
+                            center[1] + simulation.getFurOffset(1) * reach,
+                            center[2] + simulation.getFurOffset(2) * reach);
+                    part.xScale = FurLayout.PART_SCALE * stretch(halfX, grow, furLength);
+                    part.yScale = FurLayout.PART_SCALE * stretch(halfY, grow, furLength);
+                    part.zScale = FurLayout.PART_SCALE * stretch(halfZ, grow, furLength);
+                }
+            }
+        }
+    }
+
+    /** Scale that turns a shell grown by `grow` texels around a box of half-size `half` into one whose fur is `furLength` times as long. */
+    private static float stretch(float half, float grow, float furLength) {
+        float size = half + grow;
+        return size > 0.0F ? (half + grow * furLength) / size : 1.0F;
     }
 
     /**
@@ -45,6 +105,7 @@ public class CatAccessoryModel extends HumanoidModel<LivingEntity> {
         float y = ROOT_Y;
         float z = ROOT_Z;
         float width = simulation.getThickness();
+        boolean catFrame = simulation.getStyle().catFrame;
 
         for (int i = 0; i < tail.length; i++) {
             float cs = (float) Math.cos(simulation.getSide(i));
@@ -58,21 +119,38 @@ public class CatAccessoryModel extends HumanoidModel<LivingEntity> {
                     0, sp, cp};
             o = multiply(o, joint);
 
-            ModelPart part = tail[i];
-            part.setPos(x, y, z);
             // Rz(g) * Ry(b) * Rx(a): m20 = -sin b, m21 = cos b sin a, m22 = cos b cos a, m10 = sin g cos b, m00 = cos g cos b
             float beta = (float) -Math.asin(Math.max(-1.0F, Math.min(1.0F, o[6])));
+            float alpha;
+            float gamma;
             if (Math.abs(o[6]) < 0.9999F) {
-                part.xRot = (float) Math.atan2(o[7], o[8]);
-                part.zRot = (float) Math.atan2(o[3], o[0]);
+                alpha = (float) Math.atan2(o[7], o[8]);
+                gamma = (float) Math.atan2(o[3], o[0]);
             } else {
                 // Looking straight along an axis: only the sum of the two angles is defined.
-                part.xRot = (float) Math.atan2(-o[5], o[4]);
-                part.zRot = 0.0F;
+                alpha = (float) Math.atan2(-o[5], o[4]);
+                gamma = 0.0F;
             }
-            part.yRot = beta;
-            part.xScale = width;
-            part.zScale = width;
+
+            float half = FurLayout.TAIL_BOX_WIDTH / 2.0F + NekoModels.tailThickness(i);
+            for (int k = 0; k < FurLayout.LAYERS; k++) {
+                ModelPart part = tail[i][k];
+                float reach = (float) Math.pow(FurLayout.depth(k), 1.5D);
+                // The fur offset is given for an upright body. The cat body lies flat (turned a quarter
+                // turn about x), so there the model's y and z take each other's place.
+                float ox = simulation.getFurOffset(0);
+                float oy = catFrame ? simulation.getFurOffset(2) : simulation.getFurOffset(1);
+                float oz = catFrame ? -simulation.getFurOffset(1) : simulation.getFurOffset(2);
+                part.setPos(x + ox * reach, y + oy * reach, z + oz * reach);
+                part.xRot = alpha;
+                part.yRot = beta;
+                part.zRot = gamma;
+                float grow = FurLayout.grow(k, FurLayout.TAIL_FUR_LENGTH);
+                float around = FurLayout.PART_SCALE * width * stretch(half, grow, simulation.getFurLength());
+                part.xScale = around;
+                part.yScale = FurLayout.PART_SCALE;
+                part.zScale = around;
+            }
 
             // The next segment starts at the far end of this one: orientation * (0, length, 0).
             x += o[1] * TailSimulation.SEGMENT_LENGTH;

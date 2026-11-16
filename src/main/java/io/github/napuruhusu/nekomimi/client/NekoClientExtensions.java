@@ -42,6 +42,8 @@ public final class NekoClientExtensions implements IClientItemExtensions {
         ((HumanoidModel) original).copyPropertiesTo(model);
         if (tail) {
             model.applyTail(TailPhysics.update(entity));
+        } else {
+            model.applyEars(TailPhysics.update(entity));
         }
         return model;
     }

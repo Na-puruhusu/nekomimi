@@ -38,6 +38,15 @@ public final class TailSimulation {
     /** How fast the width of the tail follows the style. */
     private static final float THICKNESS_SMOOTHING = 0.15F;
 
+    // Fur: it is blown about by the wearer's motion and sinks under its own weight, on a soft spring of its own.
+    /** Model units the outermost fur layer is pushed per block/second of speed. */
+    private static final float FUR_PUSH_PER_SPEED = 0.10F;
+    private static final float FUR_MAX_PUSH = 0.6F;
+    private static final float FUR_STIFFNESS = 55.0F;
+    private static final float FUR_DAMPING_RATIO = 0.3F;
+    private static final float FUR_SHIVER_RATE = 38.0F;
+    private static final float FUR_LENGTH_SMOOTHING = 0.15F;
+
     private static final float INPUT_SMOOTHING = 0.05F;
     /**
      * The springs are always integrated with this fixed step, whatever the frame rate, so the motion
@@ -61,6 +70,13 @@ public final class TailSimulation {
 
     private TailStyle style = TailStyles.NORMAL;
     private float thickness = 1.0F;
+    private float furLength = 1.0F;
+    /** Fur offset of the outermost layer, in the human model frame: x = the wearer's left, y = down, z = back. */
+    private final float[] furOffset = new float[3];
+    private final float[] furVel = new float[3];
+    private final float[] furTarget = new float[3];
+    private float furShiverX;
+    private float furShiverY;
 
     private float smoothForward;
     private float smoothLeft;
@@ -93,6 +109,22 @@ public final class TailSimulation {
         return thickness;
     }
 
+    /** Fur length compared with normal, 1 = normal. */
+    public float getFurLength() {
+        return furLength;
+    }
+
+    /**
+     * How far the outermost fur layer is displaced, in model units, along axis 0 = the wearer's left,
+     * 1 = down, 2 = back (the frame of an upright body). Inner layers move less. Includes trembling.
+     */
+    public float getFurOffset(int axis) {
+        if (axis == 0) {
+            return furOffset[0] + furShiverX;
+        }
+        return axis == 1 ? furOffset[1] + furShiverY : furOffset[2];
+    }
+
     public TailStyle getStyle() {
         return style;
     }
@@ -111,6 +143,7 @@ public final class TailSimulation {
         if (frameChanged) {
             snapToRest();
             thickness = style.thickness;
+            furLength = style.furLength;
         }
     }
 
@@ -123,6 +156,13 @@ public final class TailSimulation {
         smoothYaw = 0.0F;
         pendingTime = 0.0F;
         thickness = style.thickness;
+        furLength = style.furLength;
+        for (int a = 0; a < 3; a++) {
+            furOffset[a] = 0.0F;
+            furVel[a] = 0.0F;
+        }
+        furShiverX = 0.0F;
+        furShiverY = 0.0F;
     }
 
     private void snapToRest() {
@@ -158,6 +198,14 @@ public final class TailSimulation {
         float speed = (float) Math.hypot(smoothForward, smoothLeft);
         walkPhase += speed * dt * WALK_PHASE_PER_BLOCK;
         thickness += (s.thickness - thickness) * (1.0F - (float) Math.exp(-dt / THICKNESS_SMOOTHING));
+        furLength += (s.furLength - furLength) * (1.0F - (float) Math.exp(-dt / FUR_LENGTH_SMOOTHING));
+
+        // Fur streams away from the direction of travel and sinks down; shivering is added on top.
+        furTarget[0] = clamp(-smoothLeft * FUR_PUSH_PER_SPEED, -FUR_MAX_PUSH, FUR_MAX_PUSH) * s.furSway;
+        furTarget[1] = clamp(smoothUp * FUR_PUSH_PER_SPEED, -FUR_MAX_PUSH, FUR_MAX_PUSH) * s.furSway + s.furDroop;
+        furTarget[2] = clamp(smoothForward * FUR_PUSH_PER_SPEED, -FUR_MAX_PUSH, FUR_MAX_PUSH) * s.furSway;
+        furShiverX = s.furShiver * (float) Math.sin(time * FUR_SHIVER_RATE);
+        furShiverY = s.furShiver * 0.7F * (float) Math.sin(time * FUR_SHIVER_RATE * 1.27F + 1.0F);
 
         // Moving forward streams the tail backward, falling lifts it, jumping presses it down.
         float pitchDrive = clamp(PITCH_PER_FORWARD_SPEED * s.forwardSign * smoothForward
@@ -200,6 +248,11 @@ public final class TailSimulation {
     }
 
     private void integrate(float h, TailStyle s) {
+        float fc = 2.0F * FUR_DAMPING_RATIO * (float) Math.sqrt(FUR_STIFFNESS);
+        for (int a = 0; a < 3; a++) {
+            furVel[a] += (-FUR_STIFFNESS * (furOffset[a] - furTarget[a]) - fc * furVel[a]) * h;
+            furOffset[a] += furVel[a] * h;
+        }
         for (int i = 0; i < SEGMENTS; i++) {
             float along = i / (float) (SEGMENTS - 1);
             float k = (STIFFNESS_ROOT + (STIFFNESS_TIP - STIFFNESS_ROOT) * along) * s.stiffness;

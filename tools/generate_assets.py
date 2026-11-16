@@ -6,9 +6,13 @@ Requires Pillow.
 """
 import json
 import math
+import sys
 from pathlib import Path
 
 from PIL import Image, ImageDraw
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import fur_texture  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "src/main/resources/assets/nekomimi"
@@ -70,23 +74,8 @@ def paint_cube(img, u, v, w, h, d, base, top=None, bottom=None, side=None):
 
 
 def armor_texture(kind, p):
-    img = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
-    base, tip, inner = rgb(p["base"]), rgb(p["tip"]), rgb(p["inner"])
-    if kind == "nekomimi":
-        # ear base 3x2x2 at (0,0): pink inner ear on the front face
-        paint_cube(img, 0, 0, 3, 2, 2, base)
-        rect(img, 2 + 1, 2, 1, 2, inner)       # middle column of the front face
-        # ear tip 1x1x2 at (10,0)
-        paint_cube(img, 10, 0, 1, 1, 2, base)
-        rect(img, 10 + 2, 2, 1, 1, inner)
-    else:
-        # The tail is a chain of 2x2x2 segments (see NekoModels.TAIL_UV):
-        # fur at (0,8), stripe at (0,12), tip at (8,8). Colors without stripes use the fur color for both.
-        stripe = rgb(p["stripe"]) if p["stripe"] else base
-        paint_cube(img, 0, 8, 2, 2, 2, base)
-        paint_cube(img, 0, 12, 2, 2, 2, stripe)
-        paint_cube(img, 8, 8, 2, 2, 2, tip, top=lighten(tip), bottom=darken(tip), side=darken(tip, 0.07))
-    return img
+    """Worn texture: layered fur, see fur_texture.py (the layout is shared with FurLayout.java)."""
+    return fur_texture.ear_texture(p) if kind == "nekomimi" else fur_texture.tail_texture(p)
 
 
 def icon_outline(canvas, outline):
@@ -153,6 +142,7 @@ def write_json(path, data):
 
 
 def main():
+    fur_texture.load_layout(ROOT)
     lang_ja = {"itemGroup.nekomimi": "猫耳としっぽ"}
     lang_en = {"itemGroup.nekomimi": "Nekomimi"}
 
