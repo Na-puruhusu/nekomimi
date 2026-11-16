@@ -15,12 +15,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.PlayerModelPart;
 
 /**
- * Draws a player in cat mode: the player's own skin on the {@link CatPlayerModel}, at the normal player size.
+ * Draws a player in cat mode: the player's own skin on the {@link CatPlayerModel}, smaller than normal.
  * Armor, the item in hand and a head item are drawn by the usual layers, which follow the posed parts.
  * It replaces the normal player renderer only while the player is a cat, see ClientEvents.
  */
 public class CatPlayerRenderer extends LivingEntityRenderer<AbstractClientPlayer, CatPlayerModel> {
-    /** The scale the vanilla player renderer uses, times CatBody.SCALE (1, so the size is unchanged). */
+    /** Same size scale as a normal player (the vanilla renderer uses it too), times the cat scale. */
     private static final float MODEL_SCALE = 0.9375F * CatBody.SCALE;
 
     public CatPlayerRenderer(EntityRendererProvider.Context context, boolean slim) {

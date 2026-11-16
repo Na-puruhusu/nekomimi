@@ -10,7 +10,7 @@ import net.minecraft.util.Mth;
  * poses: setupAnim does not call the normal humanoid animation at all, it places every part itself.
  *
  * Model space: 1 unit = 1/16 block, +y is down, the front of the model is -z, the ground is y = 24.
- * The pieces are placed like this (the model is drawn at the normal player size):
+ * The pieces are placed like this (the whole model is then drawn at CatBody.SCALE):
  *
  *   torso      lies flat, turned a quarter turn about its front end, so it runs from z = -3 (shoulders)
  *              to z = 9 (hips) and its 4 unit thickness is y = 8..12
