@@ -23,7 +23,7 @@ public class CatAccessoryModel extends HumanoidModel<LivingEntity> {
 
     /** The tail segments from the root to the tip, each with its fur layers, or null for the ears. */
     private final ModelPart[][] tail;
-    /** The ear pieces: [side][0 = base, 1 = tip][layer], or null for the tail. */
+    /** The ear pieces: [side][piece][layer], or null for the tail. */
     private final ModelPart[][][] ears;
 
     public CatAccessoryModel(ModelPart root, boolean withTail) {
@@ -39,12 +39,13 @@ public class CatAccessoryModel extends HumanoidModel<LivingEntity> {
             ears = null;
         } else {
             tail = null;
-            ears = new ModelPart[2][2][FurLayout.LAYERS];
+            ears = new ModelPart[2][FurLayout.EAR_PIECES][FurLayout.LAYERS];
             ModelPart head = root.getChild("head");
             for (int side = 0; side < 2; side++) {
-                for (int k = 0; k < FurLayout.LAYERS; k++) {
-                    ears[side][0][k] = head.getChild(NekoModels.earPartName(side, false, k));
-                    ears[side][1][k] = head.getChild(NekoModels.earPartName(side, true, k));
+                for (int piece = 0; piece < FurLayout.EAR_PIECES; piece++) {
+                    for (int k = 0; k < FurLayout.LAYERS; k++) {
+                        ears[side][piece][k] = head.getChild(NekoModels.earPartName(side, piece, k));
+                    }
                 }
             }
         }
@@ -60,12 +61,9 @@ public class CatAccessoryModel extends HumanoidModel<LivingEntity> {
         }
         float furLength = simulation.getFurLength();
         for (int side = 0; side < 2; side++) {
-            for (int piece = 0; piece < 2; piece++) {
-                boolean tip = piece == 1;
-                float[] center = tip ? NekoModels.EAR_TIP_CENTER[side] : NekoModels.EAR_BASE_CENTER[side];
-                float halfX = (tip ? FurLayout.EAR_TIP_WIDTH : FurLayout.EAR_BASE_WIDTH) / 2.0F;
-                float halfY = (tip ? FurLayout.EAR_TIP_HEIGHT : FurLayout.EAR_BASE_HEIGHT) / 2.0F;
-                float halfZ = (tip ? FurLayout.EAR_TIP_DEPTH : FurLayout.EAR_BASE_DEPTH) / 2.0F;
+            for (int piece = 0; piece < FurLayout.EAR_PIECES; piece++) {
+                float[] center = NekoModels.EAR_CENTER[piece][side];
+                int[] box = FurLayout.EAR_BOX[piece];
                 for (int k = 0; k < FurLayout.LAYERS; k++) {
                     float grow = FurLayout.grow(k, FurLayout.EAR_FUR_LENGTH);
                     ModelPart part = ears[side][piece][k];
@@ -73,9 +71,9 @@ public class CatAccessoryModel extends HumanoidModel<LivingEntity> {
                     part.setPos(center[0] + simulation.getFurOffset(0) * reach,
                             center[1] + simulation.getFurOffset(1) * reach,
                             center[2] + simulation.getFurOffset(2) * reach);
-                    part.xScale = FurLayout.PART_SCALE * stretch(halfX, grow, furLength);
-                    part.yScale = FurLayout.PART_SCALE * stretch(halfY, grow, furLength);
-                    part.zScale = FurLayout.PART_SCALE * stretch(halfZ, grow, furLength);
+                    part.xScale = FurLayout.PART_SCALE * stretch(box[0] / 2.0F, grow, furLength);
+                    part.yScale = FurLayout.PART_SCALE * stretch(box[1] / 2.0F, grow, furLength);
+                    part.zScale = FurLayout.PART_SCALE * stretch(box[2] / 2.0F, grow, furLength);
                 }
             }
         }

@@ -42,24 +42,19 @@ public final class FurLayout {
     public static final int TAIL_VARIANT_STRIPE = 1;
     public static final int TAIL_VARIANT_TIP = 2;
 
-    // ---- Ear texture: the base box and the tip box, LAYERS regions each ----
+    // ---- Ear texture: three stacked boxes (a triangle seen from the front), LAYERS regions each ----
     public static final int EAR_TEX_WIDTH = 256;
     public static final int EAR_TEX_HEIGHT = 64;
-    /** Ear base box 12 x 8 x 8 texels (3 x 2 x 2 units); ear tip box 4 x 4 x 8 texels (1 x 1 x 2 units). */
-    public static final int EAR_BASE_WIDTH = 12;
-    public static final int EAR_BASE_HEIGHT = 8;
-    public static final int EAR_BASE_DEPTH = 8;
-    public static final int EAR_TIP_WIDTH = 4;
-    public static final int EAR_TIP_HEIGHT = 4;
-    public static final int EAR_TIP_DEPTH = 8;
-    public static final int EAR_BASE_REGION_WIDTH = 40;
-    public static final int EAR_BASE_REGION_HEIGHT = 16;
-    public static final int EAR_BASE_COLUMNS = 6;
-    public static final int EAR_TIP_REGION_WIDTH = 24;
-    public static final int EAR_TIP_REGION_HEIGHT = 12;
-    public static final int EAR_TIP_COLUMNS = 10;
-    /** The tip regions start below the base regions. */
-    public static final int EAR_TIP_TOP = 32;
+    /** Number of boxes in one ear. Piece 0 is the wide bottom, the last one the point. */
+    public static final int EAR_PIECES = 3;
+    /**
+     * Size of each piece in texels (width, height, depth): 3 x 1.5 x 2, 2 x 1.5 x 2 and 1 x 1 x 1 units,
+     * stacked on the head so that the ear narrows to a point.
+     */
+    public static final int[][] EAR_BOX = {{12, 6, 8}, {8, 6, 8}, {4, 4, 4}};
+    /** Regions of a piece sit in rows of EAR_COLUMNS[piece], starting EAR_TOP[piece] texels from the top. */
+    public static final int[] EAR_COLUMNS = {6, 8, 16};
+    public static final int[] EAR_TOP = {0, 28, 56};
 
     private FurLayout() {
     }
@@ -82,19 +77,21 @@ public final class FurLayout {
         return ((variant * LAYERS + layer) / TAIL_COLUMNS) * TAIL_REGION_HEIGHT;
     }
 
-    public static int earBaseU(int layer) {
-        return (layer % EAR_BASE_COLUMNS) * EAR_BASE_REGION_WIDTH;
+    /** Width of the footprint of a piece in the texture: 2 * depth + 2 * width. */
+    public static int earRegionWidth(int piece) {
+        return 2 * EAR_BOX[piece][2] + 2 * EAR_BOX[piece][0];
     }
 
-    public static int earBaseV(int layer) {
-        return (layer / EAR_BASE_COLUMNS) * EAR_BASE_REGION_HEIGHT;
+    /** Height of the footprint of a piece in the texture: depth + height. */
+    public static int earRegionHeight(int piece) {
+        return EAR_BOX[piece][2] + EAR_BOX[piece][1];
     }
 
-    public static int earTipU(int layer) {
-        return (layer % EAR_TIP_COLUMNS) * EAR_TIP_REGION_WIDTH;
+    public static int earU(int piece, int layer) {
+        return (layer % EAR_COLUMNS[piece]) * earRegionWidth(piece);
     }
 
-    public static int earTipV(int layer) {
-        return EAR_TIP_TOP + (layer / EAR_TIP_COLUMNS) * EAR_TIP_REGION_HEIGHT;
+    public static int earV(int piece, int layer) {
+        return EAR_TOP[piece] + (layer / EAR_COLUMNS[piece]) * earRegionHeight(piece);
     }
 }

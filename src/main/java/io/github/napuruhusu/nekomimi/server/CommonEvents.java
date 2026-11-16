@@ -50,12 +50,31 @@ public final class CommonEvents {
             return;
         }
         Player player = event.player;
+        keepCatPose(player);
         Map<Player, Boolean> applied = player.level().isClientSide ? APPLIED_CLIENT : APPLIED_SERVER;
         boolean cat = NekoStates.get(player).cat();
         Boolean before = applied.put(player, cat);
         if (before == null ? cat : before != cat) {
             player.refreshDimensions();
         }
+    }
+
+    /**
+     * The game decides the pose with the size of a normal player (1.8 blocks tall). Where that does not
+     * fit, such as a gap one block high, it puts the player into the crawling pose. A cat is only 0.7
+     * tall and fits there walking, so when the game chose crawling for no other reason (not swimming,
+     * gliding or sleeping), the cat gets its standing or crouching pose back. This runs at the end of
+     * the player's tick, after the game has chosen, so the wrong pose is never drawn.
+     */
+    private static void keepCatPose(Player player) {
+        if (player.getPose() != Pose.SWIMMING
+                || !NekoStates.get(player).cat()
+                || player.isSwimming() || player.isFallFlying() || player.isSleeping()
+                || player.isAutoSpinAttack() || player.isPassenger() || player.isSpectator()) {
+            return;
+        }
+        boolean sneaking = player.isShiftKeyDown() && !player.getAbilities().flying;
+        player.setPose(sneaking ? Pose.CROUCHING : Pose.STANDING);
     }
 
     @SubscribeEvent

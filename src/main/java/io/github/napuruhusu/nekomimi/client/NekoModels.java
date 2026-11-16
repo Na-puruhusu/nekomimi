@@ -39,11 +39,15 @@ public final class NekoModels {
     private static final int[] TAIL_VARIANT = {FUR, STRIPE, FUR, STRIPE, TIP, TIP};
 
     /**
-     * Centers of the four ear pieces in the head frame (model units). Each piece is a box around its own
-     * center so that it can be scaled about it. The model's +x side is the wearer's left.
+     * Centers of the ear pieces in the head frame, in model units, [piece][side]. Each piece is a box
+     * around its own center so that it can be scaled about it. The model's +x side is the wearer's left.
+     * The head top is at y = -8: the pieces stack upward from there and narrow to a point.
      */
-    static final float[][] EAR_BASE_CENTER = {{2.5F, -9.0F, -2.0F}, {-2.5F, -9.0F, -2.0F}};
-    static final float[][] EAR_TIP_CENTER = {{2.5F, -10.5F, -2.0F}, {-2.5F, -10.5F, -2.0F}};
+    static final float[][][] EAR_CENTER = {
+            {{2.5F, -8.75F, -2.0F}, {-2.5F, -8.75F, -2.0F}},
+            {{2.5F, -10.25F, -2.0F}, {-2.5F, -10.25F, -2.0F}},
+            {{2.5F, -11.5F, -2.0F}, {-2.5F, -11.5F, -2.0F}},
+    };
     static final String[] EAR_SIDE = {"left", "right"};
 
     private NekoModels() {
@@ -54,9 +58,9 @@ public final class NekoModels {
         return "tail_" + segment + "_" + layer;
     }
 
-    /** Name of an ear piece. side 0 = left, 1 = right; tip false = base box. A child of the head part. */
-    public static String earPartName(int side, boolean tip, int layer) {
-        return EAR_SIDE[side] + (tip ? "_ear_tip_" : "_ear_") + layer;
+    /** Name of an ear piece (0 = bottom). side 0 = left, 1 = right. A child of the head part. */
+    public static String earPartName(int side, int piece, int layer) {
+        return EAR_SIDE[side] + "_ear_" + piece + "_" + layer;
     }
 
     /** Extra half-width of a tail segment's base box, in texels (thinner toward the tip). */
@@ -70,27 +74,17 @@ public final class NekoModels {
 
         PartDefinition head = root.addOrReplaceChild("head", CubeListBuilder.create(), PartPose.ZERO);
         for (int side = 0; side < 2; side++) {
-            for (int layer = 0; layer < FurLayout.LAYERS; layer++) {
-                float grow = FurLayout.grow(layer, FurLayout.EAR_FUR_LENGTH);
-                CubeDeformation deformation = new CubeDeformation(grow);
-
-                float[] c = EAR_BASE_CENTER[side];
-                head.addOrReplaceChild(earPartName(side, false, layer),
-                        CubeListBuilder.create().texOffs(FurLayout.earBaseU(layer), FurLayout.earBaseV(layer))
-                                .addBox(-FurLayout.EAR_BASE_WIDTH / 2.0F, -FurLayout.EAR_BASE_HEIGHT / 2.0F,
-                                        -FurLayout.EAR_BASE_DEPTH / 2.0F,
-                                        FurLayout.EAR_BASE_WIDTH, FurLayout.EAR_BASE_HEIGHT, FurLayout.EAR_BASE_DEPTH,
-                                        deformation),
-                        PartPose.offset(c[0], c[1], c[2]));
-
-                float[] t = EAR_TIP_CENTER[side];
-                head.addOrReplaceChild(earPartName(side, true, layer),
-                        CubeListBuilder.create().texOffs(FurLayout.earTipU(layer), FurLayout.earTipV(layer))
-                                .addBox(-FurLayout.EAR_TIP_WIDTH / 2.0F, -FurLayout.EAR_TIP_HEIGHT / 2.0F,
-                                        -FurLayout.EAR_TIP_DEPTH / 2.0F,
-                                        FurLayout.EAR_TIP_WIDTH, FurLayout.EAR_TIP_HEIGHT, FurLayout.EAR_TIP_DEPTH,
-                                        deformation),
-                        PartPose.offset(t[0], t[1], t[2]));
+            for (int piece = 0; piece < FurLayout.EAR_PIECES; piece++) {
+                int[] box = FurLayout.EAR_BOX[piece];
+                float[] c = EAR_CENTER[piece][side];
+                for (int layer = 0; layer < FurLayout.LAYERS; layer++) {
+                    CubeDeformation deformation = new CubeDeformation(FurLayout.grow(layer, FurLayout.EAR_FUR_LENGTH));
+                    head.addOrReplaceChild(earPartName(side, piece, layer),
+                            CubeListBuilder.create().texOffs(FurLayout.earU(piece, layer), FurLayout.earV(piece, layer))
+                                    .addBox(-box[0] / 2.0F, -box[1] / 2.0F, -box[2] / 2.0F,
+                                            box[0], box[1], box[2], deformation),
+                            PartPose.offset(c[0], c[1], c[2]));
+                }
             }
         }
 

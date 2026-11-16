@@ -123,14 +123,15 @@ def tail_scene(tex, yaw, pitches, widths, sc):
 
 
 def ears_scene(tex, sc):
-    centers = {"base": [(2.5, -9.0, -2.0), (-2.5, -9.0, -2.0)], "tip": [(2.5, -10.5, -2.0), (-2.5, -10.5, -2.0)]}
-    for side in range(2):
-        for kind, size, org in (("base", (12, 8, 8), ft.ear_base_origin), ("tip", (4, 4, 8), ft.ear_tip_origin)):
+    # same centers as NekoModels.EAR_CENTER
+    ys = (-8.75, -10.25, -11.5)
+    for side, x in enumerate((2.5, -2.5)):
+        for piece, (w, h, d) in enumerate(L["EAR_BOX"]):
             for k in range(LAYERS):
                 grow = k * EAR_FUR * 4 / SHELLS
-                sc._lo = (-size[0] / 2, -size[1] / 2, -size[2] / 2)
-                sc.box(tex, org(k), size, (grow, grow, grow), np.array(centers[kind][side]), np.eye(3),
-                       (PART_SCALE,) * 3, density=10.0)
+                sc._lo = (-w / 2, -h / 2, -d / 2)
+                sc.box(tex, ft.ear_origin(piece, k), (w, h, d), (grow, grow, grow), np.array((x, ys[piece], -2.0)),
+                       np.eye(3), (PART_SCALE,) * 3, density=10.0)
 
 
 def main():

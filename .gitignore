@@ -21,3 +21,4 @@ Thumbs.db
 
 # javac argument files left behind by failed compiles
 javac.*.args
+__pycache__/

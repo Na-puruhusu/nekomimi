@@ -7,6 +7,7 @@ Every part is drawn as LAYERS boxes. Layer 0 is solid. Layers 1..SHELLS only kee
 hairs that reach that far; each texel gets one random "length" that is the same in all layers, so a
 hair is a column of texels through the layers.
 """
+import json
 import random
 import re
 from pathlib import Path
@@ -22,19 +23,20 @@ LAYOUT = dict(
     TAIL_TEX_WIDTH=256, TAIL_TEX_HEIGHT=128, TAIL_BOX_WIDTH=8, TAIL_BOX_HEIGHT=8,
     TAIL_REGION_WIDTH=32, TAIL_REGION_HEIGHT=16, TAIL_COLUMNS=8,
     TAIL_VARIANT_FUR=0, TAIL_VARIANT_STRIPE=1, TAIL_VARIANT_TIP=2,
-    EAR_TEX_WIDTH=256, EAR_TEX_HEIGHT=64,
-    EAR_BASE_WIDTH=12, EAR_BASE_HEIGHT=8, EAR_BASE_DEPTH=8,
-    EAR_TIP_WIDTH=4, EAR_TIP_HEIGHT=4, EAR_TIP_DEPTH=8,
-    EAR_BASE_REGION_WIDTH=40, EAR_BASE_REGION_HEIGHT=16, EAR_BASE_COLUMNS=6,
-    EAR_TIP_REGION_WIDTH=24, EAR_TIP_REGION_HEIGHT=12, EAR_TIP_COLUMNS=10, EAR_TIP_TOP=32,
+    EAR_TEX_WIDTH=256, EAR_TEX_HEIGHT=64, EAR_PIECES=3,
+    EAR_BOX=[[12, 6, 8], [8, 6, 8], [4, 4, 4]], EAR_COLUMNS=[6, 8, 16], EAR_TOP=[0, 28, 56],
 )
 
 
 def load_layout(root):
     """Check LAYOUT against FurLayout.java and return it."""
     src = (Path(root) / "src/main/java/io/github/napuruhusu/nekomimi/client/FurLayout.java").read_text()
-    found = {m.group(1): int(m.group(2))
-             for m in re.finditer(r"public static final int (\w+) = (-?\d+);", src)}
+    found = {}
+    for m in re.finditer(r"public static final int((?:\[\])*) (\w+) = ([^;]+);", src):
+        text = m.group(3).strip()
+        if not m.group(1) and not re.fullmatch(r"-?\d+", text):
+            continue  # a computed value such as SHELLS + 1
+        found[m.group(2)] = json.loads(text.replace("{", "[").replace("}", "]")) if m.group(1) else int(text)
     for name, value in LAYOUT.items():
         if name not in found:
             raise SystemExit(f"FurLayout.java has no constant {name}")
@@ -51,14 +53,10 @@ def tail_origin(variant, layer):
            (i // LAYOUT["TAIL_COLUMNS"]) * LAYOUT["TAIL_REGION_HEIGHT"]
 
 
-def ear_base_origin(layer):
-    return (layer % LAYOUT["EAR_BASE_COLUMNS"]) * LAYOUT["EAR_BASE_REGION_WIDTH"], \
-           (layer // LAYOUT["EAR_BASE_COLUMNS"]) * LAYOUT["EAR_BASE_REGION_HEIGHT"]
-
-
-def ear_tip_origin(layer):
-    return (layer % LAYOUT["EAR_TIP_COLUMNS"]) * LAYOUT["EAR_TIP_REGION_WIDTH"], \
-           LAYOUT["EAR_TIP_TOP"] + (layer // LAYOUT["EAR_TIP_COLUMNS"]) * LAYOUT["EAR_TIP_REGION_HEIGHT"]
+def ear_origin(piece, layer):
+    w, h, d = LAYOUT["EAR_BOX"][piece]
+    cols = LAYOUT["EAR_COLUMNS"][piece]
+    return (layer % cols) * (2 * d + 2 * w), LAYOUT["EAR_TOP"][piece] + (layer // cols) * (d + h)
 
 
 def faces(w, h, d):
@@ -170,6 +168,10 @@ def tail_texture(palette):
 
 # ---- ears ----
 
+# Pink patch on the front face of each piece, as (x0, x1, y0, y1) in texels; together they make a triangle.
+EAR_INNER = {0: (3, 9, 0, 6), 1: (2, 6, 0, 6)}
+
+
 def ear_texture(palette):
     img = Image.new("RGBA", (LAYOUT["EAR_TEX_WIDTH"], LAYOUT["EAR_TEX_HEIGHT"]), (0, 0, 0, 0))
     base = hex_rgb(palette["base"])
@@ -177,32 +179,18 @@ def ear_texture(palette):
     inner = hex_rgb(palette["inner"])
     # The soft hair inside the ear is paler and shorter.
     inner_tip = shade(inner, 0.45)
+    plain = fur_rule(base, highlight)
+    soft = fur_rule(inner, inner_tip, reach=0.7)
 
-    def inner_area(face, x, y, fw, fh):
-        if face != "front":
-            return False
-        # a rounded patch in the middle of the front face
-        cx, cy = (fw - 1) / 2.0, (fh - 1) / 2.0 + 0.3
-        rx, ry = fw * 0.34, fh * 0.46
-        return ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1.0
+    for piece, (w, h, d) in enumerate(LAYOUT["EAR_BOX"]):
+        patch = EAR_INNER.get(piece)
 
-    def rule_for(width, height):
-        plain = fur_rule(base, highlight)
-        soft = fur_rule(inner, inner_tip, reach=0.7)
-
-        def color_at(face, x, y, rank, jitter, layer):
-            if inner_area(face, x, y, width, height):
+        def color_at(face, x, y, rank, jitter, layer, patch=patch):
+            if patch and face == "front" and patch[0] <= x < patch[1] and patch[2] <= y < patch[3]:
                 return soft(face, x, y, rank, jitter, layer)
             return plain(face, x, y, rank, jitter, layer)
-        return color_at
 
-    sizes = (
-        ("base", LAYOUT["EAR_BASE_WIDTH"], LAYOUT["EAR_BASE_HEIGHT"], LAYOUT["EAR_BASE_DEPTH"], ear_base_origin),
-        ("tip", LAYOUT["EAR_TIP_WIDTH"], LAYOUT["EAR_TIP_HEIGHT"], LAYOUT["EAR_TIP_DEPTH"], ear_tip_origin),
-    )
-    for name, w, h, d, origin in sizes:
-        strands = Strands(f"ear-{name}-{palette['base']}", w, h, d)
-        rule = rule_for(w, h)
+        strands = Strands(f"ear-{piece}-{palette['base']}", w, h, d)
         for layer in range(LAYERS):
-            paint_region(img, origin(layer), strands, layer, rule)
+            paint_region(img, ear_origin(piece, layer), strands, layer, color_at)
     return img
