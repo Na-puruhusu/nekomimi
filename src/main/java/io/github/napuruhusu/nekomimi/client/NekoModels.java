@@ -48,6 +48,8 @@ public final class NekoModels {
             {{2.5F, -10.25F, -2.0F}, {-2.5F, -10.25F, -2.0F}},
             {{2.5F, -11.5F, -2.0F}, {-2.5F, -11.5F, -2.0F}},
     };
+    /** Where each ear turns: the middle of its base on the top of the head, [side]. */
+    static final float[][] EAR_PIVOT = {{2.5F, -8.0F, -2.0F}, {-2.5F, -8.0F, -2.0F}};
     static final String[] EAR_SIDE = {"left", "right"};
 
     private NekoModels() {

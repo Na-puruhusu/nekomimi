@@ -52,6 +52,15 @@ public final class TailStyle {
     float furShiver = 0.0F;
     float furDroop = 0.25F;
 
+    /**
+     * Ears: where each ear points. Pitch: positive = forward, negative = back (radians); out: positive =
+     * the ear's tip leans away from the head, negative = toward it. Index 0 is the left ear, 1 the right.
+     * twitchRate: how often an ear flicks, per second on average.
+     */
+    final float[] earPitch = new float[2];
+    final float[] earOut = new float[2];
+    float earTwitchRate = 0.25F;
+
     /** Limits for the first joint, so the tail does not go through the body. */
     float rootMin = 0.05F;
     float rootMax = 1.5F;
@@ -114,6 +123,15 @@ public final class TailStyle {
 
     TailStyle thick(float thickness) {
         this.thickness = thickness;
+        return this;
+    }
+
+    TailStyle ears(float pitchLeft, float pitchRight, float outLeft, float outRight, float twitchRate) {
+        this.earPitch[0] = pitchLeft;
+        this.earPitch[1] = pitchRight;
+        this.earOut[0] = outLeft;
+        this.earOut[1] = outRight;
+        this.earTwitchRate = twitchRate;
         return this;
     }
 

@@ -51,6 +51,9 @@ public final class CommonEvents {
         }
         Player player = event.player;
         keepCatPose(player);
+        if (player instanceof ServerPlayer serverPlayer) {
+            NekoServer.tickPose(serverPlayer);
+        }
         Map<Player, Boolean> applied = player.level().isClientSide ? APPLIED_CLIENT : APPLIED_SERVER;
         boolean cat = NekoStates.get(player).cat();
         Boolean before = applied.put(player, cat);

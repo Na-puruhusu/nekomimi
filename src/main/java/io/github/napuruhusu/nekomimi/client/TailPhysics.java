@@ -1,5 +1,7 @@
 package io.github.napuruhusu.nekomimi.client;
 
+import io.github.napuruhusu.nekomimi.state.NekoEmotion;
+import io.github.napuruhusu.nekomimi.state.NekoState;
 import io.github.napuruhusu.nekomimi.state.NekoStates;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.Mth;
@@ -47,7 +49,18 @@ public final class TailPhysics {
      */
     private static TailStyle styleFor(LivingEntity entity) {
         if (entity instanceof Player player && NekoStates.usesCatBody(player)) {
-            return TailStyles.forEmotion(NekoStates.get(player).emotion());
+            NekoState state = NekoStates.get(player);
+            NekoEmotion emotion = state.emotion();
+            // A pose with no emotion chosen brings its own tail: resting while sitting, curled up asleep.
+            if (emotion == NekoEmotion.NONE) {
+                emotion = switch (state.pose()) {
+                    case SIT, LOAF, GROOM -> NekoEmotion.RELAXED;
+                    case STRETCH -> NekoEmotion.HAPPY;
+                    case SLEEP -> NekoEmotion.AFFECTIONATE;
+                    default -> NekoEmotion.NONE;
+                };
+            }
+            return TailStyles.forEmotion(emotion);
         }
         return entity.isSprinting() ? TailStyles.SPRINT : TailStyles.NORMAL;
     }

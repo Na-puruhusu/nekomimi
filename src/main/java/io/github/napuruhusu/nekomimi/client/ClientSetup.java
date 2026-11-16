@@ -23,6 +23,7 @@ public final class ClientSetup {
     @SubscribeEvent
     public static void registerKeys(RegisterKeyMappingsEvent event) {
         event.register(ModKeys.EMOTION_MENU);
+        event.register(ModKeys.POSE_MENU);
         event.register(ModKeys.TOGGLE_MODE);
     }
 

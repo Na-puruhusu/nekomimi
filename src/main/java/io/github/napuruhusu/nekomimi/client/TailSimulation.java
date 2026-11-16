@@ -78,6 +78,21 @@ public final class TailSimulation {
     private float furShiverX;
     private float furShiverY;
 
+    // Ears: angle and speed of each ear (0 = left, 1 = right), the targets, and when each flicks next.
+    private static final float EAR_STIFFNESS = 140.0F;
+    private static final float EAR_DAMPING_RATIO = 0.4F;
+    /** Speed given to an ear for a flick, radians per second. */
+    private static final float EAR_FLICK_SPEED = 7.0F;
+    private final float[] earPitch = new float[2];
+    private final float[] earOut = new float[2];
+    private final float[] earPitchVel = new float[2];
+    private final float[] earOutVel = new float[2];
+    private final float[] earPitchTarget = new float[2];
+    private final float[] earOutTarget = new float[2];
+    private final float[] earShiver = new float[2];
+    private final float[] nextFlick = new float[2];
+    private final java.util.Random random = new java.util.Random();
+
     private float smoothForward;
     private float smoothLeft;
     private float smoothUp;
@@ -125,6 +140,16 @@ public final class TailSimulation {
         return axis == 1 ? furOffset[1] + furShiverY : furOffset[2];
     }
 
+    /** Angle of an ear (0 = left, 1 = right): positive = forward, negative = back, in radians. */
+    public float getEarPitch(int side) {
+        return earPitch[side] + earShiver[side];
+    }
+
+    /** How far an ear's tip leans away from the head (0 = left, 1 = right), in radians; negative = toward it. */
+    public float getEarOut(int side) {
+        return earOut[side];
+    }
+
     public TailStyle getStyle() {
         return style;
     }
@@ -163,6 +188,18 @@ public final class TailSimulation {
         }
         furShiverX = 0.0F;
         furShiverY = 0.0F;
+        for (int e = 0; e < 2; e++) {
+            earPitch[e] = style.earPitch[e];
+            earOut[e] = style.earOut[e];
+            earPitchVel[e] = 0.0F;
+            earOutVel[e] = 0.0F;
+            nextFlick[e] = time + flickDelay(style.earTwitchRate);
+        }
+    }
+
+    /** Time until the next flick of an ear: random, on average 1 / rate seconds. */
+    private float flickDelay(float rate) {
+        return rate > 0.0F ? (0.4F + 1.2F * random.nextFloat()) / rate : 1.0F;
     }
 
     private void snapToRest() {
@@ -207,6 +244,21 @@ public final class TailSimulation {
         furShiverX = s.furShiver * (float) Math.sin(time * FUR_SHIVER_RATE);
         furShiverY = s.furShiver * 0.7F * (float) Math.sin(time * FUR_SHIVER_RATE * 1.27F + 1.0F);
 
+        // Ears: pointed where the mood puts them, laid back when falling, trembling when scared,
+        // and flicking now and then (one ear at a time).
+        float fall = clamp(smoothUp * 0.05F, -0.5F, 0.0F);
+        for (int e = 0; e < 2; e++) {
+            earPitchTarget[e] = s.earPitch[e] + fall;
+            // Trembling is added after the spring, which would smooth such a fast shake away.
+            earShiver[e] = s.furShiver * 0.8F * (float) Math.sin(time * FUR_SHIVER_RATE * (1.1F + 0.15F * e));
+            earOutTarget[e] = s.earOut[e];
+            if (s.earTwitchRate > 0.0F && time >= nextFlick[e]) {
+                earPitchVel[e] -= EAR_FLICK_SPEED;
+                earOutVel[e] += (random.nextBoolean() ? 1.0F : -1.0F) * EAR_FLICK_SPEED * 0.3F;
+                nextFlick[e] = time + flickDelay(s.earTwitchRate);
+            }
+        }
+
         // Moving forward streams the tail backward, falling lifts it, jumping presses it down.
         float pitchDrive = clamp(PITCH_PER_FORWARD_SPEED * s.forwardSign * smoothForward
                         - PITCH_PER_UP_SPEED * smoothUp, -MAX_PITCH_DRIVE, MAX_PITCH_DRIVE) * s.motionScale;
@@ -248,6 +300,13 @@ public final class TailSimulation {
     }
 
     private void integrate(float h, TailStyle s) {
+        float ec = 2.0F * EAR_DAMPING_RATIO * (float) Math.sqrt(EAR_STIFFNESS);
+        for (int e = 0; e < 2; e++) {
+            earPitchVel[e] += (-EAR_STIFFNESS * (earPitch[e] - earPitchTarget[e]) - ec * earPitchVel[e]) * h;
+            earPitch[e] += earPitchVel[e] * h;
+            earOutVel[e] += (-EAR_STIFFNESS * (earOut[e] - earOutTarget[e]) - ec * earOutVel[e]) * h;
+            earOut[e] += earOutVel[e] * h;
+        }
         float fc = 2.0F * FUR_DAMPING_RATIO * (float) Math.sqrt(FUR_STIFFNESS);
         for (int a = 0; a < 3; a++) {
             furVel[a] += (-FUR_STIFFNESS * (furOffset[a] - furTarget[a]) - fc * furVel[a]) * h;

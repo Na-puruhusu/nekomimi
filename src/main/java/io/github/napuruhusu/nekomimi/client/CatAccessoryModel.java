@@ -61,16 +61,41 @@ public class CatAccessoryModel extends HumanoidModel<LivingEntity> {
         }
         float furLength = simulation.getFurLength();
         for (int side = 0; side < 2; side++) {
+            // Each ear turns as one piece about the middle of its base on the head: forward and back
+            // (pitch), and tip away from or toward the head (out; the right ear leans the other way).
+            float pitch = simulation.getEarPitch(side);
+            float roll = simulation.getEarOut(side) * (side == 0 ? 1.0F : -1.0F);
+            float cx = (float) Math.cos(pitch);
+            float sx = (float) Math.sin(pitch);
+            float cz = (float) Math.cos(roll);
+            float sz = (float) Math.sin(roll);
+            float[] pivot = NekoModels.EAR_PIVOT[side];
+
             for (int piece = 0; piece < FurLayout.EAR_PIECES; piece++) {
                 float[] center = NekoModels.EAR_CENTER[piece][side];
                 int[] box = FurLayout.EAR_BOX[piece];
+                // Where the piece's center goes: its offset from the pivot, turned by Rx(pitch) and then Rz(roll).
+                float rx = center[0] - pivot[0];
+                float ry = center[1] - pivot[1];
+                float rz = center[2] - pivot[2];
+                float y1 = ry * cx - rz * sx;
+                float z1 = ry * sx + rz * cx;
+                float x2 = rx * cz - y1 * sz;
+                float y2 = rx * sz + y1 * cz;
+                float px = pivot[0] + x2;
+                float py = pivot[1] + y2;
+                float pz = pivot[2] + z1;
+
                 for (int k = 0; k < FurLayout.LAYERS; k++) {
                     float grow = FurLayout.grow(k, FurLayout.EAR_FUR_LENGTH);
                     ModelPart part = ears[side][piece][k];
                     float reach = (float) Math.pow(FurLayout.depth(k), 1.5D) * EAR_SWAY;
-                    part.setPos(center[0] + simulation.getFurOffset(0) * reach,
-                            center[1] + simulation.getFurOffset(1) * reach,
-                            center[2] + simulation.getFurOffset(2) * reach);
+                    part.setPos(px + simulation.getFurOffset(0) * reach,
+                            py + simulation.getFurOffset(1) * reach,
+                            pz + simulation.getFurOffset(2) * reach);
+                    part.xRot = pitch;
+                    part.yRot = 0.0F;
+                    part.zRot = roll;
                     part.xScale = FurLayout.PART_SCALE * stretch(box[0] / 2.0F, grow, furLength);
                     part.yScale = FurLayout.PART_SCALE * stretch(box[1] / 2.0F, grow, furLength);
                     part.zScale = FurLayout.PART_SCALE * stretch(box[2] / 2.0F, grow, furLength);

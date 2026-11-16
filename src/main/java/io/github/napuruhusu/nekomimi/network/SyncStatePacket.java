@@ -2,6 +2,7 @@ package io.github.napuruhusu.nekomimi.network;
 
 import io.github.napuruhusu.nekomimi.client.ClientSync;
 import io.github.napuruhusu.nekomimi.state.NekoEmotion;
+import io.github.napuruhusu.nekomimi.state.NekoPose;
 import io.github.napuruhusu.nekomimi.state.NekoState;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
@@ -16,26 +17,29 @@ public final class SyncStatePacket {
     private final UUID player;
     private final boolean cat;
     private final int emotion;
+    private final int pose;
 
-    public SyncStatePacket(UUID player, boolean cat, int emotion) {
+    public SyncStatePacket(UUID player, boolean cat, int emotion, int pose) {
         this.player = player;
         this.cat = cat;
         this.emotion = emotion;
+        this.pose = pose;
     }
 
     public static void encode(SyncStatePacket packet, FriendlyByteBuf buf) {
         buf.writeUUID(packet.player);
         buf.writeBoolean(packet.cat);
         buf.writeByte(packet.emotion);
+        buf.writeByte(packet.pose);
     }
 
     public static SyncStatePacket decode(FriendlyByteBuf buf) {
-        return new SyncStatePacket(buf.readUUID(), buf.readBoolean(), buf.readByte());
+        return new SyncStatePacket(buf.readUUID(), buf.readBoolean(), buf.readByte(), buf.readByte());
     }
 
     public static void handle(SyncStatePacket packet, Supplier<NetworkEvent.Context> context) {
         NetworkEvent.Context ctx = context.get();
-        NekoState state = new NekoState(packet.cat, NekoEmotion.byIndex(packet.emotion));
+        NekoState state = new NekoState(packet.cat, NekoEmotion.byIndex(packet.emotion), NekoPose.byIndex(packet.pose));
         // The lambdas keep client-only classes from being loaded on a dedicated server.
         ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
                 () -> () -> ClientSync.apply(packet.player, state)));
