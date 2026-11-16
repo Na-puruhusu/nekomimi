@@ -25,7 +25,7 @@ public final class FurLayout {
 
     /** How far the fur sticks out from the surface, in model units (1/16 block). */
     public static final float TAIL_FUR_LENGTH = 1.1F;
-    public static final float EAR_FUR_LENGTH = 0.7F;
+    public static final float EAR_FUR_LENGTH = 0.4F;
 
     // ---- Tail texture: 3 variants x LAYERS regions ----
     public static final int TAIL_TEX_WIDTH = 256;

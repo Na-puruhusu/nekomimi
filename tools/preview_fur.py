@@ -20,7 +20,7 @@ ARMOR = ROOT / "src/main/resources/assets/nekomimi/textures/models/armor"
 ft.load_layout(ROOT)
 L = ft.LAYOUT
 SHELLS, LAYERS, PART_SCALE = L["SHELLS"], L["SHELLS"] + 1, 0.25
-TAIL_FUR, EAR_FUR = 1.1, 0.7
+TAIL_FUR, EAR_FUR = 1.1, 0.4
 
 
 def rot_x(a):
