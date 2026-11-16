@@ -1,0 +1,52 @@
+name: inspect-api
+
+# Prints the real signatures (and, if asked, the bytecode of one method) of Minecraft classes from the
+# mapped Forge jar. Used to check what an API really does when it cannot be tried in the game.
+# Run it by hand from the Actions tab: give class names separated by spaces, and optionally a method name.
+on:
+  workflow_dispatch:
+    inputs:
+      classes:
+        description: 'Class names, e.g. net.minecraft.client.model.geom.ModelPart'
+        required: true
+        default: 'net.minecraft.client.model.geom.ModelPart'
+      method:
+        description: 'Method whose bytecode to print (optional), e.g. translateAndRotate'
+        required: false
+        default: ''
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v3
+
+      - name: Build the mapped jar
+        run: ./gradlew compileJava --no-daemon -q
+
+      - name: Print the classes
+        env:
+          CLASSES: ${{ inputs.classes }}
+          METHOD: ${{ inputs.method }}
+        run: |
+          JAR=$(find ~/.gradle -name 'forge-1.20.1-47.4.28_mapped_official_1.20.1.jar' | head -1)
+          echo "jar: $JAR"
+          for C in $CLASSES; do
+            echo "=================== $C (signatures)"
+            javap -p -cp "$JAR" "$C"
+            if [ -n "$METHOD" ]; then
+              echo "=================== $C.$METHOD (bytecode)"
+              javap -p -c -cp "$JAR" "$C" | awk -v m="$METHOD" '
+                $0 ~ " " m "\\(" {on=1}
+                on {print}
+                on && /^$/ {on=0}'
+            fi
+          done
