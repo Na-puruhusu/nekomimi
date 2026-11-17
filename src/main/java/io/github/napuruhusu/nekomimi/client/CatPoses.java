@@ -117,9 +117,11 @@ public final class CatPoses {
     private static void sit(float[] out, float time, float headPitch, float headYaw) {
         float breath = (float) Math.sin(time * 0.1D) * 0.12F;
         put(out, BODY, 0.0F, 14.4F + breath, -3.0F, 0.9F, 0.0F, 0.0F);
-        put(out, HEAD, 0.0F, 16.0F + breath, -4.2F, clamp(headPitch, 0.9F), clamp(headYaw, 1.2F), 0.0F);
-        put(out, FRONT_RIGHT, -2.5F, 14.0F, -5.5F, 0.05F, 0.0F, 0.0F);
-        put(out, FRONT_LEFT, 2.5F, 14.0F, -5.5F, 0.05F, 0.0F, 0.0F);
+        // Looking far down would push the chin into the front legs, so that is limited more than looking up.
+        put(out, HEAD, 0.0F, 14.8F + breath, -4.2F, Math.max(-0.9F, Math.min(0.5F, headPitch)), clamp(headYaw, 1.2F), 0.0F);
+        // The front legs start below the head's chin (their tops must stay hidden when the head tips up).
+        put(out, FRONT_RIGHT, -2.5F, 16.0F, -5.5F, 0.05F, 0.0F, 0.0F, 1.0F, 0.8F, 1.0F);
+        put(out, FRONT_LEFT, 2.5F, 16.0F, -5.5F, 0.05F, 0.0F, 0.0F, 1.0F, 0.8F, 1.0F);
         put(out, HIND_RIGHT, -3.4F, 21.5F, 6.4F, -1.45F, -0.3F, 0.0F, 1.0F, 0.6F, 1.0F);
         put(out, HIND_LEFT, 3.4F, 21.5F, 6.4F, -1.45F, 0.3F, 0.0F, 1.0F, 0.6F, 1.0F);
     }
@@ -161,7 +163,7 @@ public final class CatPoses {
     private static void groom(float[] out, float time, float headPitch, float headYaw) {
         sit(out, time, 0.0F, 0.0F);
         float lick = (float) Math.sin(time * 0.9D);
-        put(out, HEAD, 0.0F, 16.0F, -4.2F, 0.45F + lick * 0.06F, -0.25F, 0.0F);
-        put(out, FRONT_RIGHT, -2.5F, 14.0F, -5.5F, -1.95F + lick * 0.18F, 0.0F, 0.0F, 1.0F, 0.7F, 1.0F);
+        put(out, HEAD, 0.0F, 14.8F, -4.2F, 0.45F + lick * 0.06F, -0.25F, 0.0F);
+        put(out, FRONT_RIGHT, -2.5F, 15.5F, -5.5F, -1.95F + lick * 0.18F, 0.0F, 0.0F, 1.0F, 0.7F, 1.0F);
     }
 }

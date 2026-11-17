@@ -6,7 +6,8 @@ public class PoseDump {
     boolean first = true;
     for (NekoPose p : NekoPose.values()) {
       float[] out = new float[CatPoses.SIZE];
-      CatPoses.compute(p, out, 10f, 0f, 0f, new CatPoses.Motion(0f, 0f, false, 0f));
+      float pitch = a.length > 0 ? Float.parseFloat(a[0]) : 0f;
+      CatPoses.compute(p, out, 10f, pitch, 0f, new CatPoses.Motion(0f, 0f, false, 0f));
       if (!first) sb.append(","); first = false;
       sb.append("\"").append(p.name()).append("\":[");
       for (int i = 0; i < out.length; i++) sb.append(i==0?"":",").append(out[i]);

@@ -3,7 +3,8 @@
 
 Compiles CatPoses.java (it has no game classes), prints the part placements of every pose and draws the
 parts as colored boxes from three sides, with the ground and the head's face marked.
-Usage: python3 tools/preview_pose.py <out.png> [pose ...]     (default: all poses)
+Usage: [POSE_PITCH=<radians, negative = looking up>] python3 tools/preview_pose.py <out.png> [pose ...]
+(default: all poses)
 """
 import json
 import subprocess
@@ -32,12 +33,12 @@ COLORS = {
 }
 
 
-def dump_poses():
+def dump_poses(pitch=0.0):
     with tempfile.TemporaryDirectory() as tmp:
         files = [SRC / "client/CatPoses.java", SRC / "state/NekoPose.java", ROOT / "tools/pose_dump/PoseDump.java"]
         subprocess.run(["javac", "-d", tmp] + [str(f) for f in files], check=True,
                        stderr=subprocess.DEVNULL)
-        out = subprocess.run(["java", "-cp", tmp, "io.github.napuruhusu.nekomimi.client.PoseDump"],
+        out = subprocess.run(["java", "-cp", tmp, "io.github.napuruhusu.nekomimi.client.PoseDump", str(pitch)],
                              check=True, capture_output=True, text=True).stdout
     return json.loads(out)
 
@@ -98,7 +99,8 @@ def render(pose_values, yaw, pitch=-12, size=420, scale=10.0):
 
 def main():
     out = sys.argv[1]
-    poses = dump_poses()
+    import os
+    poses = dump_poses(float(os.environ.get("POSE_PITCH", "0")))
     names = sys.argv[2:] or list(poses)
     views = (90, 35, 215)
     sheet = Image.new("RGB", (420 * len(views), 420 * len(names)))
