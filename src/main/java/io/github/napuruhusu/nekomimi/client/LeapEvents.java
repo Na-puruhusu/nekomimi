@@ -9,13 +9,13 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * The cat's long jump (cat mode only): press the crouch key while sprinting and let go again quickly,
- * and the cat leaps far forward when the key comes up. No jump key is needed. Holding the key for
- * longer is just a normal crouch.
+ * The cat's long jump (cat mode only): crouch while sprinting, and jump while still crouching. The
+ * jump then goes far forward. A crouch that did not begin right after a sprint gives an ordinary jump.
  *
  * The jump is the player's own movement, so it is decided and applied here on the client. The server is
  * only told, so that other players can see the motion (see LeapPacket).
@@ -28,18 +28,14 @@ public final class LeapEvents {
      */
     private static final int SPRINT_TO_CROUCH_TICKS = 4;
 
-    /** The key must be let go within this many ticks of being pressed (5 ticks = 0.25 seconds). */
-    private static final int MAX_HOLD_TICKS = 5;
-
     /** Speed forward and upward speed of the leap (an ordinary jump is 0.42 up; the air slows the forward speed by a tenth each tick). */
     private static final double LONG_SPEED = 0.85D;
     private static final double LONG_LIFT = 0.50D;
 
     private static int ticksSinceSprint = 100;
     private static boolean wasSneaking;
-    /** Whether the running crouch began right after a sprint, and for how many ticks it has been held. */
+    /** Whether the running crouch began right after a sprint. */
     private static boolean fromSprint;
-    private static int heldTicks;
 
     private LeapEvents() {
     }
@@ -50,12 +46,6 @@ public final class LeapEvents {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
-        // The game only looks at whether the crouch key is down at the moment of a tick, so a very quick tap
-        // can pass between two ticks. The key also counts its presses; they are read here (and used up).
-        boolean tapped = false;
-        while (minecraft.options.keyShift.consumeClick()) {
-            tapped = true;
-        }
         LocalPlayer player = minecraft.player;
         if (player == null || !NekoStates.get(player).cat()) {
             wasSneaking = false;
@@ -66,28 +56,28 @@ public final class LeapEvents {
 
         ticksSinceSprint = player.isSprinting() ? 0 : Math.min(ticksSinceSprint + 1, 100);
         boolean sneaking = player.input.shiftKeyDown;
-        boolean released = false;
 
-        if (sneaking) {
-            if (!wasSneaking) {
-                // The crouch begins: remember whether it follows a sprint.
-                fromSprint = ticksSinceSprint <= SPRINT_TO_CROUCH_TICKS;
-                heldTicks = 0;
-            } else {
-                heldTicks++;
-            }
-        } else if (wasSneaking) {
-            released = fromSprint && heldTicks <= MAX_HOLD_TICKS;
+        if (sneaking && !wasSneaking) {
+            // The crouch begins: remember whether it follows a sprint.
+            fromSprint = ticksSinceSprint <= SPRINT_TO_CROUCH_TICKS;
+        } else if (!sneaking) {
             fromSprint = false;
-        } else if (tapped) {
-            // A tap that began and ended between two ticks: as short as a press can be.
-            released = ticksSinceSprint <= SPRINT_TO_CROUCH_TICKS;
         }
         wasSneaking = sneaking;
+    }
 
-        if (released && minecraft.screen == null
-                && player.onGround() && !player.isInWater() && !player.isPassenger()
-                && !player.isFallFlying() && !player.isSleeping()
+    /** Called by the game right after a jump has given the player its jumping speed. */
+    @SubscribeEvent
+    public static void onJump(LivingEvent.LivingJumpEvent event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!(event.getEntity() instanceof LocalPlayer player) || player != minecraft.player
+                || !NekoStates.get(player).cat() || minecraft.screen != null) {
+            return;
+        }
+        // Still crouching, and the crouch began right after a sprint. (A crouch pressed in the very tick of the
+        // jump has not been seen by the tick handler yet, so the sprint that just ended counts too.)
+        boolean crouching = player.input.shiftKeyDown && (fromSprint || ticksSinceSprint <= SPRINT_TO_CROUCH_TICKS);
+        if (crouching && !player.isInWater() && !player.isPassenger()
                 && LeapActions.current(player) == NekoLeap.NONE) {
             leap(player);
         }
