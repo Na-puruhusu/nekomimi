@@ -1,5 +1,6 @@
 package io.github.napuruhusu.nekomimi.client;
 
+import io.github.napuruhusu.nekomimi.state.NekoLeap;
 import io.github.napuruhusu.nekomimi.state.NekoPose;
 
 /**
@@ -34,9 +35,20 @@ public final class CatPoses {
     private CatPoses() {
     }
 
-    /** Which way and how fast the cat is moving, for the walking pose; poses ignore it. */
-    public record Motion(float limbSwing, float limbAmount, boolean airborne, float attackTime) {
+    /**
+     * How the cat is moving, for the walking pose; the sitting-type poses ignore it.
+     *
+     * @param leap      the boosted jump the cat is in, if any
+     * @param crouching the player is crouching (a low, ready-to-spring stance)
+     * @param rising    the cat is moving upward (in the air)
+     */
+    public record Motion(float limbSwing, float limbAmount, boolean airborne, float attackTime,
+                         NekoLeap leap, boolean crouching, boolean rising) {
         public static final Motion STILL = new Motion(0.0F, 0.0F, false, 0.0F);
+
+        public Motion(float limbSwing, float limbAmount, boolean airborne, float attackTime) {
+            this(limbSwing, limbAmount, airborne, attackTime, NekoLeap.NONE, false, false);
+        }
     }
 
     /**
@@ -85,6 +97,18 @@ public final class CatPoses {
     // ---- walking: the torso lies flat, a trot where a front leg and the opposite hind leg move together ----
 
     private static void walk(float[] out, float headPitch, float headYaw, Motion m) {
+        if (m.airborne() && m.leap() == NekoLeap.LONG) {
+            longLeap(out, headPitch, headYaw, m.rising());
+            return;
+        }
+        if (m.airborne() && m.leap() == NekoLeap.HIGH) {
+            highLeap(out, headPitch, headYaw, m.rising());
+            return;
+        }
+        if (m.crouching() && !m.airborne()) {
+            crouch(out, headPitch, headYaw, m);
+            return;
+        }
         put(out, BODY, 0.0F, 10.0F, -3.0F, QUARTER_TURN, 0.0F, 0.0F);
         put(out, HEAD, 0.0F, 12.0F, -4.0F, headPitch, headYaw, 0.0F);
 
@@ -110,6 +134,50 @@ public final class CatPoses {
         put(out, FRONT_LEFT, 2.0F, 14.0F, -1.0F, frontLeft, 0.0F, 0.0F);
         put(out, HIND_RIGHT, -2.0F, 12.0F, 7.0F, hindRight, 0.0F, 0.0F);
         put(out, HIND_LEFT, 2.0F, 12.0F, 7.0F, hindLeft, 0.0F, 0.0F);
+    }
+
+    // ---- crouching: low to the ground, haunches up, ready to spring; it can still creep along ----
+
+    private static void crouch(float[] out, float headPitch, float headYaw, Motion m) {
+        put(out, BODY, 0.0F, 14.0F, -3.0F, QUARTER_TURN + 0.12F, 0.0F, 0.0F);
+        put(out, HEAD, 0.0F, 16.0F, -4.5F, clamp(headPitch, 0.8F) * 0.8F, clamp(headYaw, 1.0F), 0.0F);
+
+        float stride = (float) Math.cos(m.limbSwing() * 0.6662F) * GAIT_SWING * 0.5F * Math.min(m.limbAmount(), 1.0F);
+        // The legs are shortened (bent) so that the paws still reach the ground.
+        put(out, FRONT_RIGHT, -2.0F, 17.0F, -1.5F, stride - 0.35F, 0.0F, 0.0F, 1.0F, 0.7F, 1.0F);
+        put(out, FRONT_LEFT, 2.0F, 17.0F, -1.5F, -stride - 0.35F, 0.0F, 0.0F, 1.0F, 0.7F, 1.0F);
+        put(out, HIND_RIGHT, -2.0F, 15.2F, 7.0F, -stride + 0.5F, 0.0F, 0.0F, 1.0F, 0.8F, 1.0F);
+        put(out, HIND_LEFT, 2.0F, 15.2F, 7.0F, stride + 0.5F, 0.0F, 0.0F, 1.0F, 0.8F, 1.0F);
+    }
+
+    // ---- long jump: stretched out flat, front legs reaching ahead, hind legs trailing ----
+
+    private static void longLeap(float[] out, float headPitch, float headYaw, boolean rising) {
+        // Nose up while rising, nose down while coming down.
+        float lean = rising ? -0.2F : 0.15F;
+        put(out, BODY, 0.0F, 9.0F, -3.0F, QUARTER_TURN + lean, 0.0F, 0.0F);
+        put(out, HEAD, 0.0F, 11.0F, -4.5F, clamp(headPitch, 0.8F) - lean * 0.5F, clamp(headYaw, 1.0F), 0.0F);
+        float reach = rising ? -1.75F : -1.45F;
+        put(out, FRONT_RIGHT, -2.0F, 12.5F, -1.5F, reach, -0.1F, 0.0F);
+        put(out, FRONT_LEFT, 2.0F, 12.5F, -1.5F, reach, 0.1F, 0.0F);
+        put(out, HIND_RIGHT, -2.0F, 11.5F, 7.0F, 1.7F, 0.1F, 0.0F);
+        put(out, HIND_LEFT, 2.0F, 11.5F, 7.0F, 1.7F, -0.1F, 0.0F);
+    }
+
+    // ---- high jump: the body stands up, front legs drawn in, hind legs hanging (spread to land when falling) ----
+
+    private static void highLeap(float[] out, float headPitch, float headYaw, boolean rising) {
+        float lean = rising ? 0.55F : 1.0F;
+        put(out, BODY, 0.0F, 7.0F, -1.5F, lean, 0.0F, 0.0F);
+        put(out, HEAD, 0.0F, 9.2F, -3.3F, clamp(headPitch, 0.8F) - (rising ? 0.2F : 0.0F), clamp(headYaw, 1.0F), 0.0F);
+        float reach = rising ? -1.1F : -0.9F;
+        float tuck = rising ? 0.75F : 1.0F;
+        put(out, FRONT_RIGHT, -2.5F, 10.0F, -3.0F, reach, -0.1F, 0.0F, 1.0F, tuck, 1.0F);
+        put(out, FRONT_LEFT, 2.5F, 10.0F, -3.0F, reach, 0.1F, 0.0F, 1.0F, tuck, 1.0F);
+        float hindY = 7.0F + 12.0F * (float) Math.cos(lean) - 1.0F;
+        float hindZ = -1.5F + 12.0F * (float) Math.sin(lean);
+        put(out, HIND_RIGHT, -2.5F, hindY, hindZ, rising ? 0.2F : 0.6F, 0.1F, 0.0F);
+        put(out, HIND_LEFT, 2.5F, hindY, hindZ, rising ? 0.2F : 0.6F, -0.1F, 0.0F);
     }
 
     // ---- sitting: the torso leans back on the hips, the front legs straight, the hind legs folded forward ----

@@ -4,7 +4,7 @@
 Compiles CatPoses.java (it has no game classes), prints the part placements of every pose and draws the
 parts as colored boxes from three sides, with the ground and the head's face marked.
 Usage: [POSE_PITCH=<radians, negative = looking up>] python3 tools/preview_pose.py <out.png> [pose ...]
-(default: all poses)
+(default: all poses; also CROUCH, LONG_RISE, LONG_FALL, HIGH_RISE, HIGH_FALL)
 """
 import json
 import subprocess
@@ -35,7 +35,8 @@ COLORS = {
 
 def dump_poses(pitch=0.0):
     with tempfile.TemporaryDirectory() as tmp:
-        files = [SRC / "client/CatPoses.java", SRC / "state/NekoPose.java", ROOT / "tools/pose_dump/PoseDump.java"]
+        files = [SRC / "client/CatPoses.java", SRC / "state/NekoPose.java", SRC / "state/NekoLeap.java",
+                 ROOT / "tools/pose_dump/PoseDump.java"]
         subprocess.run(["javac", "-d", tmp] + [str(f) for f in files], check=True,
                        stderr=subprocess.DEVNULL)
         out = subprocess.run(["java", "-cp", tmp, "io.github.napuruhusu.nekomimi.client.PoseDump", str(pitch)],

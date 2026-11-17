@@ -2,7 +2,9 @@ package io.github.napuruhusu.nekomimi.server;
 
 import io.github.napuruhusu.nekomimi.network.NekoNetwork;
 import io.github.napuruhusu.nekomimi.network.SyncStatePacket;
+import io.github.napuruhusu.nekomimi.network.SyncLeapPacket;
 import io.github.napuruhusu.nekomimi.state.NekoEmotion;
+import io.github.napuruhusu.nekomimi.state.NekoLeap;
 import io.github.napuruhusu.nekomimi.state.NekoPose;
 import io.github.napuruhusu.nekomimi.state.NekoState;
 import io.github.napuruhusu.nekomimi.state.NekoStates;
@@ -24,6 +26,10 @@ public final class NekoServer {
 
     /** Where and when each posing player began their pose. Weak keys let a player who left be forgotten. */
     private static final Map<ServerPlayer, PoseAnchor> ANCHORS = new WeakHashMap<>();
+
+    /** Fewest ticks between two reported leaps of one player (a leap lasts longer than this). */
+    private static final int LEAP_COOLDOWN_TICKS = 8;
+    private static final Map<ServerPlayer, Integer> LAST_LEAP = new WeakHashMap<>();
 
     private record PoseAnchor(double x, double y, double z, int tick) {
     }
@@ -62,6 +68,23 @@ public final class NekoServer {
             player.displayClientMessage(Component.translatable(
                     next.cat() ? "message.nekomimi.mode.cat" : "message.nekomimi.mode.normal"), true);
         }
+    }
+
+    /**
+     * A player reports a boosted jump. The jump itself is the player's own movement; the server only
+     * checks that this is a cat and tells the others, so they can show the motion.
+     */
+    public static void requestLeap(ServerPlayer player, NekoLeap leap) {
+        if (leap == NekoLeap.NONE || !NekoStates.usesCatBody(player)) {
+            return;
+        }
+        Integer last = LAST_LEAP.get(player);
+        if (last != null && player.tickCount - last < LEAP_COOLDOWN_TICKS) {
+            return;
+        }
+        LAST_LEAP.put(player, player.tickCount);
+        NekoNetwork.CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> player),
+                new SyncLeapPacket(player.getUUID(), leap.ordinal()));
     }
 
     private static void applyState(ServerPlayer player, NekoState next) {

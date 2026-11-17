@@ -1,5 +1,6 @@
 package io.github.napuruhusu.nekomimi.client;
 
+import io.github.napuruhusu.nekomimi.state.NekoLeap;
 import io.github.napuruhusu.nekomimi.state.NekoPose;
 import io.github.napuruhusu.nekomimi.state.NekoStates;
 import net.minecraft.client.model.PlayerModel;
@@ -40,7 +41,8 @@ public class CatPlayerModel extends PlayerModel<AbstractClientPlayer> {
         NekoPose pose = NekoStates.get(player).pose();
         boolean airborne = !player.onGround() && !player.isInWater();
         CatPoses.compute(pose, target, ageInTicks, headPitch * DEG_TO_RAD, netHeadYaw * DEG_TO_RAD,
-                new CatPoses.Motion(limbSwing, limbSwingAmount, airborne, this.attackTime));
+                new CatPoses.Motion(limbSwing, limbSwingAmount, airborne, this.attackTime,
+                        LeapActions.current(player), player.isCrouching(), player.getY() > player.yo));
         CatPoseBlender.blend(BLENDER.trackFor(player), pose, target, ageInTicks, placed);
 
         place(this.head, CatPoses.HEAD);
