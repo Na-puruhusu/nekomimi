@@ -1,13 +1,11 @@
 package io.github.napuruhusu.nekomimi.state;
 
 /**
- * A boosted jump of the cat: LONG (sprint, crouch, let go quickly, jump) goes far forward, HIGH (the
- * same from a standstill or a walk) goes high up. NONE is an ordinary jump.
+ * A boosted jump of the cat: LONG (tap crouch while sprinting) goes far forward. NONE is no leap.
  */
 public enum NekoLeap {
     NONE,
-    LONG,
-    HIGH;
+    LONG;
 
     private static final NekoLeap[] VALUES = values();
 

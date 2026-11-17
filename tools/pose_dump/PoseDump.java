@@ -3,7 +3,7 @@ package io.github.napuruhusu.nekomimi.client;
 import io.github.napuruhusu.nekomimi.state.NekoLeap;
 import io.github.napuruhusu.nekomimi.state.NekoPose;
 
-/** Prints the part placements of every pose, and of the crouch and the jumps, as JSON (used by preview_pose.py). */
+/** Prints the part placements of every pose, and of the crouch and the long jump, as JSON (used by preview_pose.py). */
 public class PoseDump {
     private static void add(StringBuilder sb, String name, NekoPose pose, float pitch, CatPoses.Motion motion) {
         float[] out = new float[CatPoses.SIZE];
@@ -27,8 +27,6 @@ public class PoseDump {
         add(sb, "CROUCH", NekoPose.NONE, pitch, new CatPoses.Motion(0f, 0f, false, 0f, NekoLeap.NONE, true, false));
         add(sb, "LONG_RISE", NekoPose.NONE, pitch, new CatPoses.Motion(0f, 0f, true, 0f, NekoLeap.LONG, false, true));
         add(sb, "LONG_FALL", NekoPose.NONE, pitch, new CatPoses.Motion(0f, 0f, true, 0f, NekoLeap.LONG, false, false));
-        add(sb, "HIGH_RISE", NekoPose.NONE, pitch, new CatPoses.Motion(0f, 0f, true, 0f, NekoLeap.HIGH, false, true));
-        add(sb, "HIGH_FALL", NekoPose.NONE, pitch, new CatPoses.Motion(0f, 0f, true, 0f, NekoLeap.HIGH, false, false));
         System.out.println(sb.append("}"));
     }
 }

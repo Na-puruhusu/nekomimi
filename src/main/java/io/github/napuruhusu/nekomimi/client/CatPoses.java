@@ -101,10 +101,6 @@ public final class CatPoses {
             longLeap(out, headPitch, headYaw, m.rising());
             return;
         }
-        if (m.airborne() && m.leap() == NekoLeap.HIGH) {
-            highLeap(out, headPitch, headYaw, m.rising());
-            return;
-        }
         if (m.crouching() && !m.airborne()) {
             crouch(out, headPitch, headYaw, m);
             return;
@@ -162,22 +158,6 @@ public final class CatPoses {
         put(out, FRONT_LEFT, 2.0F, 12.5F, -1.5F, reach, 0.1F, 0.0F);
         put(out, HIND_RIGHT, -2.0F, 11.5F, 7.0F, 1.7F, 0.1F, 0.0F);
         put(out, HIND_LEFT, 2.0F, 11.5F, 7.0F, 1.7F, -0.1F, 0.0F);
-    }
-
-    // ---- high jump: the body stands up, front legs drawn in, hind legs hanging (spread to land when falling) ----
-
-    private static void highLeap(float[] out, float headPitch, float headYaw, boolean rising) {
-        float lean = rising ? 0.55F : 1.0F;
-        put(out, BODY, 0.0F, 7.0F, -1.5F, lean, 0.0F, 0.0F);
-        put(out, HEAD, 0.0F, 9.2F, -3.3F, clamp(headPitch, 0.8F) - (rising ? 0.2F : 0.0F), clamp(headYaw, 1.0F), 0.0F);
-        float reach = rising ? -1.1F : -0.9F;
-        float tuck = rising ? 0.75F : 1.0F;
-        put(out, FRONT_RIGHT, -2.5F, 10.0F, -3.0F, reach, -0.1F, 0.0F, 1.0F, tuck, 1.0F);
-        put(out, FRONT_LEFT, 2.5F, 10.0F, -3.0F, reach, 0.1F, 0.0F, 1.0F, tuck, 1.0F);
-        float hindY = 7.0F + 12.0F * (float) Math.cos(lean) - 1.0F;
-        float hindZ = -1.5F + 12.0F * (float) Math.sin(lean);
-        put(out, HIND_RIGHT, -2.5F, hindY, hindZ, rising ? 0.2F : 0.6F, 0.1F, 0.0F);
-        put(out, HIND_LEFT, 2.5F, hindY, hindZ, rising ? 0.2F : 0.6F, -0.1F, 0.0F);
     }
 
     // ---- sitting: the torso leans back on the hips, the front legs straight, the hind legs folded forward ----
