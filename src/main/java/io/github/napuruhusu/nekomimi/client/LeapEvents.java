@@ -27,8 +27,10 @@ import net.minecraftforge.fml.common.Mod;
 public final class LeapEvents {
     /** A crouch that begins this many ticks after the sprint ended still counts as "from the sprint". */
     private static final int SPRINT_TO_CROUCH_TICKS = 4;
-    /** The crouch must be held at least this long (not just a tap of the key) and at most this long. */
-    private static final int MIN_CROUCH_TICKS = 2;
+    /**
+     * How long the crouch may be held: from any tap of the key (even one shorter than a tick, which
+     * the game's own crouch never sees) up to this many ticks.
+     */
     private static final int MAX_CROUCH_TICKS = 60;
     /** After letting go of crouch, the jump must come within this many ticks. */
     private static final int JUMP_WINDOW_TICKS = 7;
@@ -66,7 +68,14 @@ public final class LeapEvents {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
-        LocalPlayer player = Minecraft.getInstance().player;
+        Minecraft minecraft = Minecraft.getInstance();
+        // The game only looks at whether the crouch key is down at the moment of a tick, so a very quick tap
+        // can pass between two ticks. The key also counts its presses; they are read here (and used up).
+        boolean tapped = false;
+        while (minecraft.options.keyShift.consumeClick()) {
+            tapped = true;
+        }
+        LocalPlayer player = minecraft.player;
         if (player == null || !NekoStates.get(player).cat()) {
             reset();
             return;
@@ -91,8 +100,12 @@ public final class LeapEvents {
         } else if (crouchHeld) {
             crouchHeld = false;
             sinceRelease = 0;
-            armed = crouchTicks >= MIN_CROUCH_TICKS && crouchTicks <= MAX_CROUCH_TICKS ? charging : NekoLeap.NONE;
+            armed = crouchTicks <= MAX_CROUCH_TICKS ? charging : NekoLeap.NONE;
             charging = NekoLeap.NONE;
+        } else if (tapped && player.onGround() && LeapActions.current(player) == NekoLeap.NONE) {
+            // A tap that began and ended between two ticks: the same as a crouch that was let go at once.
+            armed = ticksSinceSprint <= SPRINT_TO_CROUCH_TICKS ? NekoLeap.LONG : NekoLeap.HIGH;
+            sinceRelease = 0;
         } else {
             sinceRelease = Math.min(sinceRelease + 1, 100);
             if (sinceRelease > JUMP_WINDOW_TICKS) {
