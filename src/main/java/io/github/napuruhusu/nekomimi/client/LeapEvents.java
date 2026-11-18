@@ -28,12 +28,17 @@ public final class LeapEvents {
      */
     private static final int SPRINT_TO_CROUCH_TICKS = 4;
 
+    /** After the crouch is released, the jump still counts as a long jump for this many ticks (0.25 s). */
+    private static final int RELEASE_GRACE_TICKS = 5;
+
     /** Speed forward and upward speed of the leap (an ordinary jump is 0.42 up; the air slows the forward speed by a tenth each tick). */
     static final double LONG_SPEED = 0.85D;
     static final double LONG_LIFT = 0.50D;
 
     private static int ticksSinceSprint = 100;
     private static boolean wasSneaking;
+    /** Ticks since the crouch was released. */
+    private static int ticksSinceRelease = 100;
     /** Whether the running crouch began right after a sprint. */
     private static boolean fromSprint;
 
@@ -50,6 +55,7 @@ public final class LeapEvents {
         if (player == null || !NekoStates.get(player).cat()) {
             wasSneaking = false;
             fromSprint = false;
+            ticksSinceRelease = 100;
             ticksSinceSprint = 100;
             LeapPreview.clear();
             return;
@@ -62,13 +68,15 @@ public final class LeapEvents {
             // The crouch begins: remember whether it follows a sprint.
             fromSprint = ticksSinceSprint <= SPRINT_TO_CROUCH_TICKS;
         } else if (!sneaking) {
-            fromSprint = false;
+            ticksSinceRelease = wasSneaking ? 0 : Math.min(ticksSinceRelease + 1, 100);
+            if (ticksSinceRelease > RELEASE_GRACE_TICKS) {
+                fromSprint = false;
+            }
         }
         wasSneaking = sneaking;
 
         // While the long jump is ready, show where it would land.
-        boolean ready = sneaking && (fromSprint || ticksSinceSprint <= SPRINT_TO_CROUCH_TICKS)
-                && player.onGround() && !player.isInWater() && !player.isPassenger()
+        boolean ready = armed(player) && player.onGround() && !player.isInWater() && !player.isPassenger()
                 && minecraft.screen == null && LeapActions.current(player) == NekoLeap.NONE;
         LeapPreview.update(player, ready);
     }
@@ -81,13 +89,23 @@ public final class LeapEvents {
                 || !NekoStates.get(player).cat() || minecraft.screen != null) {
             return;
         }
-        // Still crouching, and the crouch began right after a sprint. (A crouch pressed in the very tick of the
+        // Crouching (or just released), and the crouch began right after a sprint. (A crouch pressed in the very tick of the
         // jump has not been seen by the tick handler yet, so the sprint that just ended counts too.)
-        boolean crouching = player.input.shiftKeyDown && (fromSprint || ticksSinceSprint <= SPRINT_TO_CROUCH_TICKS);
-        if (crouching && !player.isInWater() && !player.isPassenger()
+        if (armed(player) && !player.isInWater() && !player.isPassenger()
                 && LeapActions.current(player) == NekoLeap.NONE) {
             leap(player);
         }
+    }
+
+    /**
+     * Whether a jump now would be the long jump: the crouch began right after a sprint and is still held,
+     * or was released no more than RELEASE_GRACE_TICKS ago.
+     */
+    private static boolean armed(LocalPlayer player) {
+        if (player.input.shiftKeyDown) {
+            return fromSprint || ticksSinceSprint <= SPRINT_TO_CROUCH_TICKS;
+        }
+        return fromSprint && ticksSinceRelease <= RELEASE_GRACE_TICKS;
     }
 
     private static void leap(LocalPlayer player) {
