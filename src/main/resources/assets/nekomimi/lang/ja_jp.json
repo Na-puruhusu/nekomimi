@@ -7,6 +7,8 @@
   "message.nekomimi.mode.cat": "猫モード",
   "message.nekomimi.mode.normal": "通常モード",
   "message.nekomimi.no_space": "ここでは立ち上がれません",
+  "message.nekomimi.leap_distance": "ロングジャンプ：約%sブロック先に着地",
+  "message.nekomimi.leap_far": "ロングジャンプ：着地点が遠すぎます",
   "message.nekomimi.need_cat_mode": "感情とポーズは猫モードで選べます（Alt＋右クリックで切り替え）",
   "nekomimi.emotion.title": "今の気持ち",
   "nekomimi.emotion.none": "ふつう",

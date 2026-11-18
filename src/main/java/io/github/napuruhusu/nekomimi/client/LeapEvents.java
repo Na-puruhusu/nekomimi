@@ -29,8 +29,8 @@ public final class LeapEvents {
     private static final int SPRINT_TO_CROUCH_TICKS = 4;
 
     /** Speed forward and upward speed of the leap (an ordinary jump is 0.42 up; the air slows the forward speed by a tenth each tick). */
-    private static final double LONG_SPEED = 0.85D;
-    private static final double LONG_LIFT = 0.50D;
+    static final double LONG_SPEED = 0.85D;
+    static final double LONG_LIFT = 0.50D;
 
     private static int ticksSinceSprint = 100;
     private static boolean wasSneaking;
@@ -51,6 +51,7 @@ public final class LeapEvents {
             wasSneaking = false;
             fromSprint = false;
             ticksSinceSprint = 100;
+            LeapPreview.clear();
             return;
         }
 
@@ -64,6 +65,12 @@ public final class LeapEvents {
             fromSprint = false;
         }
         wasSneaking = sneaking;
+
+        // While the long jump is ready, show where it would land.
+        boolean ready = sneaking && (fromSprint || ticksSinceSprint <= SPRINT_TO_CROUCH_TICKS)
+                && player.onGround() && !player.isInWater() && !player.isPassenger()
+                && minecraft.screen == null && LeapActions.current(player) == NekoLeap.NONE;
+        LeapPreview.update(player, ready);
     }
 
     /** Called by the game right after a jump has given the player its jumping speed. */
