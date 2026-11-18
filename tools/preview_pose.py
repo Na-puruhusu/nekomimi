@@ -4,7 +4,7 @@
 Compiles CatPoses.java (it has no game classes), prints the part placements of every pose and draws the
 parts as colored boxes from three sides, with the ground and the head's face marked.
 Usage: [POSE_PITCH=<radians, negative = looking up>] python3 tools/preview_pose.py <out.png> [pose ...]
-(default: all poses; also CROUCH, LONG_RISE, LONG_FALL)
+(default: all poses; also CROUCH, SWIM, LONG_RISE, LONG_FALL)
 """
 import json
 import subprocess

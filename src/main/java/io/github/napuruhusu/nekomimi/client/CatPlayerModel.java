@@ -40,9 +40,12 @@ public class CatPlayerModel extends PlayerModel<AbstractClientPlayer> {
                           float ageInTicks, float netHeadYaw, float headPitch) {
         NekoPose pose = NekoStates.get(player).pose();
         boolean airborne = !player.onGround() && !player.isInWater();
+        // In deep water (not wading with the feet on the bottom) the cat paddles like a dog.
+        boolean swimming = player.isSwimming() || (player.isInWater() && !player.onGround());
         CatPoses.compute(pose, target, ageInTicks, headPitch * DEG_TO_RAD, netHeadYaw * DEG_TO_RAD,
                 new CatPoses.Motion(limbSwing, limbSwingAmount, airborne, this.attackTime,
-                        LeapActions.current(player), player.isCrouching(), player.getY() > player.yo));
+                        LeapActions.current(player), player.isCrouching(), player.getY() > player.yo,
+                        swimming));
         CatPoseBlender.blend(BLENDER.trackFor(player), pose, target, ageInTicks, placed);
 
         place(this.head, CatPoses.HEAD);

@@ -41,13 +41,19 @@ public final class CatPoses {
      * @param leap      the boosted jump the cat is in, if any
      * @param crouching the player is crouching (a low, ready-to-spring stance)
      * @param rising    the cat is moving upward (in the air)
+     * @param swimming  the cat is swimming (in deep water): it paddles like a dog
      */
     public record Motion(float limbSwing, float limbAmount, boolean airborne, float attackTime,
-                         NekoLeap leap, boolean crouching, boolean rising) {
+                         NekoLeap leap, boolean crouching, boolean rising, boolean swimming) {
         public static final Motion STILL = new Motion(0.0F, 0.0F, false, 0.0F);
 
         public Motion(float limbSwing, float limbAmount, boolean airborne, float attackTime) {
-            this(limbSwing, limbAmount, airborne, attackTime, NekoLeap.NONE, false, false);
+            this(limbSwing, limbAmount, airborne, attackTime, NekoLeap.NONE, false, false, false);
+        }
+
+        public Motion(float limbSwing, float limbAmount, boolean airborne, float attackTime,
+                      NekoLeap leap, boolean crouching, boolean rising) {
+            this(limbSwing, limbAmount, airborne, attackTime, leap, crouching, rising, false);
         }
     }
 
@@ -68,7 +74,13 @@ public final class CatPoses {
             case SLEEP -> loaf(out, time, headPitch, headYaw, true);
             case STRETCH -> stretch(out, time, headPitch, headYaw);
             case GROOM -> groom(out, time, headPitch, headYaw);
-            default -> walk(out, headPitch, headYaw, motion);
+            default -> {
+                if (motion.swimming()) {
+                    dogPaddle(out, time, headPitch, headYaw, motion.limbAmount());
+                } else {
+                    walk(out, headPitch, headYaw, motion);
+                }
+            }
         }
     }
 
@@ -130,6 +142,27 @@ public final class CatPoses {
         put(out, FRONT_LEFT, 2.0F, 14.0F, -1.0F, frontLeft, 0.0F, 0.0F);
         put(out, HIND_RIGHT, -2.0F, 12.0F, 7.0F, hindRight, 0.0F, 0.0F);
         put(out, HIND_LEFT, 2.0F, 12.0F, 7.0F, hindLeft, 0.0F, 0.0F);
+    }
+
+    // ---- swimming: a dog paddle. The body floats level with the head up, and the legs paddle in turn ----
+
+    private static void dogPaddle(float[] out, float time, float headPitch, float headYaw, float speed) {
+        // Faster strokes when moving through the water.
+        float phase = time * (0.5F + 0.25F * Math.min(speed, 1.0F));
+        float bob = (float) Math.sin(time * 0.2D) * 0.5F;
+        float roll = (float) Math.sin(phase) * 0.05F;
+        put(out, BODY, 0.0F, 13.0F + bob, -3.0F, QUARTER_TURN - 0.1F, 0.0F, roll);
+        // The head is held up out of the water, and bobs a little with the strokes.
+        put(out, HEAD, 0.0F, 14.0F + bob, -4.5F, clamp(headPitch, 0.7F) * 0.6F - 0.2F + (float) Math.sin(phase * 2.0F) * 0.04F,
+                clamp(headYaw, 1.0F), 0.0F);
+
+        // A front paw reaches forward, then pulls down and back; the opposite hind leg kicks in step with it.
+        float front = (float) Math.sin(phase);
+        float hind = (float) Math.sin(phase + Math.PI);
+        put(out, FRONT_RIGHT, -2.5F, 15.0F, -2.0F, -0.9F + front * 0.75F, -0.15F, 0.0F, 1.0F, 0.85F, 1.0F);
+        put(out, FRONT_LEFT, 2.5F, 15.0F, -2.0F, -0.9F - front * 0.75F, 0.15F, 0.0F, 1.0F, 0.85F, 1.0F);
+        put(out, HIND_RIGHT, -2.5F, 14.0F, 7.0F, 0.5F + hind * 0.55F, 0.1F, 0.0F, 1.0F, 0.85F, 1.0F);
+        put(out, HIND_LEFT, 2.5F, 14.0F, 7.0F, 0.5F - hind * 0.55F, -0.1F, 0.0F, 1.0F, 0.85F, 1.0F);
     }
 
     // ---- crouching: low to the ground, haunches up, ready to spring; it can still creep along ----

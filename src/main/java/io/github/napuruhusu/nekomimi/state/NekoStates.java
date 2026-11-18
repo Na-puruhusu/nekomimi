@@ -1,5 +1,6 @@
 package io.github.napuruhusu.nekomimi.state;
 
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Player;
 
 import java.util.Map;
@@ -47,8 +48,15 @@ public final class NekoStates {
         map(clientSide).clear();
     }
 
-    /** True if this player is drawn as the cat body right now (cat mode, and in a pose that allows it). */
+    /**
+     * True if this player is drawn as the cat body right now: cat mode, and standing, crouching or swimming
+     * in water (a cat swims, as a dog paddles). Gliding, sleeping and so on keep the normal body.
+     */
     public static boolean usesCatBody(Player player) {
-        return get(player).cat() && CatBody.isCatPose(player.getPose()) && !player.isPassenger();
+        if (!get(player).cat() || player.isPassenger()) {
+            return false;
+        }
+        return CatBody.isCatPose(player.getPose())
+                || (player.getPose() == Pose.SWIMMING && player.isInWater());
     }
 }
