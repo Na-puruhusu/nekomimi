@@ -144,6 +144,6 @@ public final class LeapEvents {
             forceRelease = true;
         }
         LeapActions.start(player, NekoLeap.LONG);
-        NekoNetwork.CHANNEL.sendToServer(new LeapPacket(NekoLeap.LONG.ordinal()));
+        NekoNetwork.CHANNEL.sendToServer(new LeapPacket(NekoLeap.LONG.ordinal(), 0));
     }
 }

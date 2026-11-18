@@ -14,26 +14,29 @@ import java.util.function.Supplier;
 public final class SyncLeapPacket {
     private final UUID player;
     private final int leap;
+    private final int extra;
 
-    public SyncLeapPacket(UUID player, int leap) {
+    public SyncLeapPacket(UUID player, int leap, int extra) {
         this.player = player;
         this.leap = leap;
+        this.extra = extra;
     }
 
     public static void encode(SyncLeapPacket packet, FriendlyByteBuf buf) {
         buf.writeUUID(packet.player);
         buf.writeByte(packet.leap);
+        buf.writeByte(packet.extra);
     }
 
     public static SyncLeapPacket decode(FriendlyByteBuf buf) {
-        return new SyncLeapPacket(buf.readUUID(), buf.readByte());
+        return new SyncLeapPacket(buf.readUUID(), buf.readByte(), buf.readByte());
     }
 
     public static void handle(SyncLeapPacket packet, Supplier<NetworkEvent.Context> context) {
         NetworkEvent.Context ctx = context.get();
         NekoLeap leap = NekoLeap.byIndex(packet.leap);
         ctx.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                () -> () -> ClientSync.applyLeap(packet.player, leap)));
+                () -> () -> ClientSync.applyLeap(packet.player, leap, packet.extra)));
         ctx.setPacketHandled(true);
     }
 }

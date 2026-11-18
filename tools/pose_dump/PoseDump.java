@@ -26,6 +26,9 @@ public class PoseDump {
         }
         add(sb, "CROUCH", NekoPose.NONE, pitch, new CatPoses.Motion(0f, 0f, false, 0f, NekoLeap.NONE, true, false));
         add(sb, "SWIM", NekoPose.NONE, pitch, new CatPoses.Motion(0f, 0.5f, false, 0f, NekoLeap.NONE, false, false, true));
+        add(sb, "HANG", NekoPose.NONE, pitch, new CatPoses.Motion(0f, 0f, false, 0f, NekoLeap.HANG, false, false, false, 5f));
+        add(sb, "CLIMB3", NekoPose.NONE, pitch, new CatPoses.Motion(0f, 0f, false, 0f, NekoLeap.CLIMB, false, false, false, 3f));
+        add(sb, "CLIMB6", NekoPose.NONE, pitch, new CatPoses.Motion(0f, 0f, false, 0f, NekoLeap.CLIMB, false, false, false, 6f));
         add(sb, "LONG_RISE", NekoPose.NONE, pitch, new CatPoses.Motion(0f, 0f, true, 0f, NekoLeap.LONG, false, true));
         add(sb, "LONG_FALL", NekoPose.NONE, pitch, new CatPoses.Motion(0f, 0f, true, 0f, NekoLeap.LONG, false, false));
         System.out.println(sb.append("}"));

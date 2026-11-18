@@ -74,17 +74,23 @@ public final class NekoServer {
      * A player reports a boosted jump. The jump itself is the player's own movement; the server only
      * checks that this is a cat and tells the others, so they can show the motion.
      */
-    public static void requestLeap(ServerPlayer player, NekoLeap leap) {
-        if (leap == NekoLeap.NONE || !NekoStates.usesCatBody(player)) {
+    public static void requestLeap(ServerPlayer player, NekoLeap leap, int extra) {
+        // NONE ends whatever the cat was doing, so it is always passed on.
+        if (leap != NekoLeap.NONE && !NekoStates.get(player).cat()) {
             return;
         }
-        Integer last = LAST_LEAP.get(player);
-        if (last != null && player.tickCount - last < LEAP_COOLDOWN_TICKS) {
-            return;
+        if (leap == NekoLeap.LONG) {
+            if (!NekoStates.usesCatBody(player)) {
+                return;
+            }
+            Integer last = LAST_LEAP.get(player);
+            if (last != null && player.tickCount - last < LEAP_COOLDOWN_TICKS) {
+                return;
+            }
+            LAST_LEAP.put(player, player.tickCount);
         }
-        LAST_LEAP.put(player, player.tickCount);
         NekoNetwork.CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> player),
-                new SyncLeapPacket(player.getUUID(), leap.ordinal()));
+                new SyncLeapPacket(player.getUUID(), leap.ordinal(), extra & 3));
     }
 
     private static void applyState(ServerPlayer player, NekoState next) {

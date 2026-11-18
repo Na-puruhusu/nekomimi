@@ -1,11 +1,15 @@
 package io.github.napuruhusu.nekomimi.state;
 
 /**
- * A boosted jump of the cat: LONG (tap crouch while sprinting) goes far forward. NONE is no leap.
+ * What the cat is doing in the air or on a ledge: LONG is the boosted jump (crouch while sprinting, then
+ * jump), HANG is hanging from a ledge it caught after that jump, CLIMB is pulling itself up onto the ledge.
+ * NONE is none of these.
  */
 public enum NekoLeap {
     NONE,
-    LONG;
+    LONG,
+    HANG,
+    CLIMB;
 
     private static final NekoLeap[] VALUES = values();
 

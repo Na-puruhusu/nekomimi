@@ -42,18 +42,24 @@ public final class CatPoses {
      * @param crouching the player is crouching (a low, ready-to-spring stance)
      * @param rising    the cat is moving upward (in the air)
      * @param swimming  the cat is swimming (in deep water): it paddles like a dog
+     * @param leapAge   ticks since the leap, hang or climb began (the climb's progress is read from it)
      */
     public record Motion(float limbSwing, float limbAmount, boolean airborne, float attackTime,
-                         NekoLeap leap, boolean crouching, boolean rising, boolean swimming) {
+                         NekoLeap leap, boolean crouching, boolean rising, boolean swimming, float leapAge) {
         public static final Motion STILL = new Motion(0.0F, 0.0F, false, 0.0F);
 
         public Motion(float limbSwing, float limbAmount, boolean airborne, float attackTime) {
-            this(limbSwing, limbAmount, airborne, attackTime, NekoLeap.NONE, false, false, false);
+            this(limbSwing, limbAmount, airborne, attackTime, NekoLeap.NONE, false, false, false, 0.0F);
         }
 
         public Motion(float limbSwing, float limbAmount, boolean airborne, float attackTime,
                       NekoLeap leap, boolean crouching, boolean rising) {
-            this(limbSwing, limbAmount, airborne, attackTime, leap, crouching, rising, false);
+            this(limbSwing, limbAmount, airborne, attackTime, leap, crouching, rising, false, 0.0F);
+        }
+
+        public Motion(float limbSwing, float limbAmount, boolean airborne, float attackTime,
+                      NekoLeap leap, boolean crouching, boolean rising, boolean swimming) {
+            this(limbSwing, limbAmount, airborne, attackTime, leap, crouching, rising, swimming, 0.0F);
         }
     }
 
@@ -75,7 +81,9 @@ public final class CatPoses {
             case STRETCH -> stretch(out, time, headPitch, headYaw);
             case GROOM -> groom(out, time, headPitch, headYaw);
             default -> {
-                if (motion.swimming()) {
+                if (motion.leap() == NekoLeap.HANG || motion.leap() == NekoLeap.CLIMB) {
+                    hang(out, time, headPitch, headYaw, motion);
+                } else if (motion.swimming()) {
                     dogPaddle(out, time, headPitch, headYaw, motion.limbAmount());
                 } else {
                     walk(out, headPitch, headYaw, motion);
@@ -142,6 +150,40 @@ public final class CatPoses {
         put(out, FRONT_LEFT, 2.0F, 14.0F, -1.0F, frontLeft, 0.0F, 0.0F);
         put(out, HIND_RIGHT, -2.0F, 12.0F, 7.0F, hindRight, 0.0F, 0.0F);
         put(out, HIND_LEFT, 2.0F, 12.0F, 7.0F, hindLeft, 0.0F, 0.0F);
+    }
+
+    // ---- hanging from a ledge, and pulling up onto it ----
+
+    /** How many ticks the climb takes (HangEvents moves the player over the same time). */
+    public static final float CLIMB_TICKS = 10.0F;
+
+    /**
+     * Hanging: the body is upright with its belly to the wall, the front legs stretched up over the ledge,
+     * the hind legs dangling. Climbing: the same pose at first, then the cat tips forward into the walking pose.
+     */
+    private static void hang(float[] out, float time, float headPitch, float headYaw, Motion m) {
+        float sway = (float) Math.sin(time * 0.12D);
+        put(out, BODY, 0.0F, 12.2F, 0.0F, 0.0F, 0.0F, sway * 0.03F);
+        put(out, HEAD, 0.0F, 13.2F, 0.0F, clamp(headPitch, 0.6F) * 0.5F - 0.3F, clamp(headYaw, 1.0F), 0.0F);
+        put(out, FRONT_RIGHT, -2.5F, 13.5F, -4.0F, -2.9F, 0.0F, 0.0F, 1.0F, 0.6F, 1.0F);
+        put(out, FRONT_LEFT, 2.5F, 13.5F, -4.0F, -2.9F, 0.0F, 0.0F, 1.0F, 0.6F, 1.0F);
+        put(out, HIND_RIGHT, -2.5F, 24.2F, 0.0F, 0.15F + sway * 0.1F, 0.0F, 0.0F, 1.0F, 0.45F, 1.0F);
+        put(out, HIND_LEFT, 2.5F, 24.2F, 0.0F, 0.15F - sway * 0.1F, 0.0F, 0.0F, 1.0F, 0.45F, 1.0F);
+        if (m.leap() != NekoLeap.CLIMB) {
+            return;
+        }
+        // The climb: tip over from upright to the walking pose.
+        float c = Math.max(0.0F, Math.min(m.leapAge() / CLIMB_TICKS, 1.0F));
+        float q = Math.max(0.0F, Math.min((c - 0.3F) / 0.7F, 1.0F));
+        q = q * q * (3.0F - 2.0F * q);
+        float[] walking = new float[SIZE];
+        for (int i = 0; i < PARTS; i++) {
+            put(walking, i, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F, 1.0F, 1.0F);
+        }
+        walk(walking, headPitch, headYaw, Motion.STILL);
+        for (int i = 0; i < SIZE; i++) {
+            out[i] += (walking[i] - out[i]) * q;
+        }
     }
 
     // ---- swimming: a dog paddle. The body floats level with the head up, and the legs paddle in turn ----
