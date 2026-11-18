@@ -8,6 +8,7 @@ import io.github.napuruhusu.nekomimi.state.NekoStates;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.MovementInputUpdateEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -37,6 +38,8 @@ public final class LeapEvents {
 
     private static int ticksSinceSprint = 100;
     private static boolean wasSneaking;
+    /** After a long jump the crouch is let go by force, until the player lets go of the key. */
+    private static boolean forceRelease;
     /** Ticks since the crouch was released. */
     private static int ticksSinceRelease = 100;
     /** Whether the running crouch began right after a sprint. */
@@ -57,6 +60,7 @@ public final class LeapEvents {
             fromSprint = false;
             ticksSinceRelease = 100;
             ticksSinceSprint = 100;
+            forceRelease = false;
             LeapPreview.clear();
             return;
         }
@@ -79,6 +83,23 @@ public final class LeapEvents {
         boolean ready = armed(player) && player.onGround() && !player.isInWater() && !player.isPassenger()
                 && minecraft.screen == null && LeapActions.current(player) == NekoLeap.NONE;
         LeapPreview.update(player, ready);
+    }
+
+    /** Keeps the crouch off after a long jump, even while the key is still held. */
+    @SubscribeEvent
+    public static void onMovementInput(MovementInputUpdateEvent event) {
+        if (!forceRelease) {
+            return;
+        }
+        Minecraft minecraft = Minecraft.getInstance();
+        if (event.getEntity() != minecraft.player) {
+            return;
+        }
+        if (minecraft.options.keyShift.isDown()) {
+            event.getInput().shiftKeyDown = false;
+        } else {
+            forceRelease = false;
+        }
     }
 
     /** Called by the game right after a jump has given the player its jumping speed. */
@@ -112,6 +133,16 @@ public final class LeapEvents {
         double yaw = Math.toRadians(player.getYRot());
         player.setDeltaMovement(-Math.sin(yaw) * LONG_SPEED, LONG_LIFT, Math.cos(yaw) * LONG_SPEED);
         player.hasImpulse = true;
+        // The leap ends the crouch: stand up now and stay up until the key is let go (or, with "toggle
+        // crouch", switch the toggle off).
+        fromSprint = false;
+        player.input.shiftKeyDown = false;
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.options.toggleCrouch().get()) {
+            minecraft.options.keyShift.setDown(false);
+        } else {
+            forceRelease = true;
+        }
         LeapActions.start(player, NekoLeap.LONG);
         NekoNetwork.CHANNEL.sendToServer(new LeapPacket(NekoLeap.LONG.ordinal()));
     }
