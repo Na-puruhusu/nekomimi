@@ -240,9 +240,11 @@ public final class HangEvents {
             // Everybody who hangs or climbs (also the other players) faces the wall.
             NekoLeap leap = LeapActions.current(eventPlayer);
             if ((leap == NekoLeap.HANG || leap == NekoLeap.CLIMB) && NekoStates.get(eventPlayer).cat()) {
-                float yaw = Direction.from2DDataValue(LeapActions.extra(eventPlayer)).toYRot();
-                eventPlayer.yBodyRot = yaw;
-                eventPlayer.yBodyRotO = yaw;
+                // Face the wall, but as the angle nearest to the head's: the renderer subtracts the two
+                // without wrapping them, so a body angle a few turns off would spin the head.
+                float wall = Direction.from2DDataValue(LeapActions.extra(eventPlayer)).toYRot();
+                eventPlayer.yBodyRot = eventPlayer.yHeadRot + Mth.wrapDegrees(wall - eventPlayer.yHeadRot);
+                eventPlayer.yBodyRotO = eventPlayer.yHeadRotO + Mth.wrapDegrees(wall - eventPlayer.yHeadRotO);
             }
             return;
         }

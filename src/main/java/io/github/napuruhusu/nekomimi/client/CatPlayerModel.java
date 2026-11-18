@@ -6,6 +6,7 @@ import io.github.napuruhusu.nekomimi.state.NekoStates;
 import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.util.Mth;
 
 /**
  * The player model posed on all fours. Nothing here comes from the vanilla crawling or swimming
@@ -42,7 +43,7 @@ public class CatPlayerModel extends PlayerModel<AbstractClientPlayer> {
         boolean airborne = !player.onGround() && !player.isInWater();
         // In deep water (not wading with the feet on the bottom) the cat paddles like a dog.
         boolean swimming = player.isSwimming() || (player.isInWater() && !player.onGround());
-        CatPoses.compute(pose, target, ageInTicks, headPitch * DEG_TO_RAD, netHeadYaw * DEG_TO_RAD,
+        CatPoses.compute(pose, target, ageInTicks, headPitch * DEG_TO_RAD, Mth.wrapDegrees(netHeadYaw) * DEG_TO_RAD,
                 new CatPoses.Motion(limbSwing, limbSwingAmount, airborne, this.attackTime,
                         LeapActions.current(player), player.isCrouching(), player.getY() > player.yo,
                         swimming, LeapActions.age(player, ageInTicks)));

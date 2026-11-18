@@ -180,7 +180,7 @@ public final class CatPoses {
         for (int i = 0; i < PARTS; i++) {
             put(walking, i, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F, 1.0F, 1.0F);
         }
-        walk(walking, headPitch, headYaw, Motion.STILL);
+        walk(walking, headPitch, clamp(headYaw, 1.0F), Motion.STILL);
         for (int i = 0; i < SIZE; i++) {
             out[i] += (walking[i] - out[i]) * q;
         }
