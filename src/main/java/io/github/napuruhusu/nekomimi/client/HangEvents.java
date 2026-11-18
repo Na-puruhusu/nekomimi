@@ -51,10 +51,6 @@ public final class HangEvents {
     private static final double REACH = W * 0.5D;
     /** Half the width of the probes (a hair narrower than the cat). */
     private static final double PROBE_HALF = W * 0.49D;
-    /** Thickness of the slab at hand height. */
-    private static final double SLAB = H / 6.0D;
-    /** The two hand heights tried: between eye and top of the head, and above the head (above the feet). */
-    private static final double[] PROBE = {E + (H - E) / 2.0D, H + (H - E) / 2.0D};
     /** The cat must not be rising faster than this (blocks per tick) to catch a ledge. */
     private static final double MAX_RISE = 0.2D;
     /** The wall must be within 60 degrees of where the cat looks: cos 60 = 0.5. */
@@ -63,9 +59,12 @@ public final class HangEvents {
     private static final double MAX_FRICTION = 0.9D;
     /** The cat hangs this far below the top of the ledge (its feet, measured from the ledge top). */
     private static final double HANG_BELOW = 0.6D;
-    /** The ledge top may be this far above the cat's feet when it is caught: from the bottom of the lower slab to the top of the head. */
-    private static final double CATCH_LOW = PROBE[0] - SLAB;
-    private static final double CATCH_HIGH = H;
+    /**
+     * The ledge top may be this far above the cat's feet when it is caught (min, max). Wider than ParCool's
+     * (which is about 0.51 to 0.70 for the cat's size) so that the leap reaches more ledges.
+     */
+    private static final double CATCH_LOW = 0.2D;
+    private static final double CATCH_HIGH = 1.1D;
 
     private static final int CLIMB_TICKS = (int) CatPoses.CLIMB_TICKS;
     /** Fraction of the climb that goes straight up; the rest moves forward onto the ledge. */
@@ -199,24 +198,17 @@ public final class HangEvents {
         }
     }
 
-    /** Whether, at hand height, there is a wall in front on the given side with free space above it. */
+    /** Whether there is a wall in front on the given side, somewhere in the catchable height range. */
     private static boolean wallAhead(LocalPlayer player, Direction side) {
         Level level = player.level();
         double x = player.getX();
         double y = player.getY();
         double z = player.getZ();
         Vec3 reach = new Vec3(side.getStepX() * REACH, 0.0D, side.getStepZ() * REACH);
-        for (double probe : PROBE) {
-            AABB slab = new AABB(x - PROBE_HALF, y + probe - SLAB, z - PROBE_HALF,
-                    x + PROBE_HALF, y + probe, z + PROBE_HALF);
-            AABB above = new AABB(x - PROBE_HALF, y + probe, z - PROBE_HALF,
-                    x + PROBE_HALF, y + H, z + PROBE_HALF);
-            if (!level.noCollision(player, slab.expandTowards(reach))
-                    && level.noCollision(player, above.expandTowards(reach))) {
-                return true;
-            }
-        }
-        return false;
+        AABB slab = new AABB(x - PROBE_HALF, y + CATCH_LOW, z - PROBE_HALF,
+                x + PROBE_HALF, y + CATCH_HIGH, z + PROBE_HALF);
+        // The exact ledge (its top, and free space above it) is checked afterwards, block by block.
+        return !level.noCollision(player, slab.expandTowards(reach));
     }
 
     private static AABB catBox(Vec3 feet) {
