@@ -41,13 +41,31 @@ public final class HangEvents {
     private static final double HALF_WIDTH = CatBody.WIDTH / 2.0D;
     /** Gap between the cat and the wall (the cat must stay within 1/16 of a block of it). */
     private static final double WALL_GAP = 0.02D;
-    /** How far the paws may be from the wall when the ledge is caught, beyond the cat's own size. */
-    private static final double REACH = 0.25D;
+    // The range of the catch follows ParCool's "cling to cliff", scaled to the cat's own size (width W,
+    // height H, eye height E): at hand height a thin slab of the cat's width must meet a wall within
+    // W/2 of it, with free space above.
+    private static final double W = CatBody.WIDTH;
+    private static final double H = CatBody.HEIGHT;
+    private static final double E = CatBody.EYE_HEIGHT;
+    /** How far from the cat's box a wall may be. */
+    private static final double REACH = W * 0.5D;
+    /** Half the width of the probes (a hair narrower than the cat). */
+    private static final double PROBE_HALF = W * 0.49D;
+    /** Thickness of the slab at hand height. */
+    private static final double SLAB = H / 6.0D;
+    /** The two hand heights tried: between eye and top of the head, and above the head (above the feet). */
+    private static final double[] PROBE = {E + (H - E) / 2.0D, H + (H - E) / 2.0D};
+    /** The cat must not be rising faster than this (blocks per tick) to catch a ledge. */
+    private static final double MAX_RISE = 0.2D;
+    /** The wall must be within 60 degrees of where the cat looks: cos 60 = 0.5. */
+    private static final double MIN_LOOK_DOT = 0.5D;
+    /** Slippery blocks (ice) cannot be caught. */
+    private static final double MAX_FRICTION = 0.9D;
     /** The cat hangs this far below the top of the ledge (its feet, measured from the ledge top). */
     private static final double HANG_BELOW = 0.6D;
-    /** The ledge top may be this far above the cat's feet when it is caught (min, max). */
-    private static final double CATCH_LOW = 0.2D;
-    private static final double CATCH_HIGH = 1.1D;
+    /** The ledge top may be this far above the cat's feet when it is caught: from the bottom of the lower slab to the top of the head. */
+    private static final double CATCH_LOW = PROBE[0] - SLAB;
+    private static final double CATCH_HIGH = H;
 
     private static final int CLIMB_TICKS = (int) CatPoses.CLIMB_TICKS;
     /** Fraction of the climb that goes straight up; the rest moves forward onto the ledge. */
@@ -107,8 +125,28 @@ public final class HangEvents {
 
     private static void tryCatch(LocalPlayer player) {
         Level level = player.level();
-        Direction facing = Direction.fromYRot(player.getYRot());
-        double reach = HALF_WIDTH + REACH;
+        if (player.getDeltaMovement().y >= MAX_RISE) {
+            return;
+        }
+        // The wall in the direction the cat looks (within 60 degrees), the one most in front.
+        Vec3 look = player.getLookAngle();
+        double length = Math.hypot(look.x, look.z);
+        if (length < 1.0E-4D) {
+            return;
+        }
+        Direction facing = null;
+        double best = MIN_LOOK_DOT;
+        for (Direction side : Direction.Plane.HORIZONTAL) {
+            double dot = (side.getStepX() * look.x + side.getStepZ() * look.z) / length;
+            if (dot > best && wallAhead(player, side)) {
+                best = dot;
+                facing = side;
+            }
+        }
+        if (facing == null) {
+            return;
+        }
+        double reach = REACH + PROBE_HALF - 0.01D;
         BlockPos column = BlockPos.containing(player.getX() + facing.getStepX() * reach, player.getY(),
                 player.getZ() + facing.getStepZ() * reach);
         double feet = player.getY();
@@ -116,6 +154,9 @@ public final class HangEvents {
         for (int dy = -1; dy <= 2; dy++) {
             BlockPos ledge = new BlockPos(column.getX(), Mth.floor(feet) + dy, column.getZ());
             BlockState state = level.getBlockState(ledge);
+            if (state.getFriction(level, ledge, player) > MAX_FRICTION) {
+                continue;
+            }
             if (!state.isFaceSturdy(level, ledge, Direction.UP)
                     || !state.isFaceSturdy(level, ledge, facing.getOpposite())) {
                 continue;
@@ -156,6 +197,26 @@ public final class HangEvents {
             tell(player, NekoLeap.HANG, facing.get2DDataValue());
             return;
         }
+    }
+
+    /** Whether, at hand height, there is a wall in front on the given side with free space above it. */
+    private static boolean wallAhead(LocalPlayer player, Direction side) {
+        Level level = player.level();
+        double x = player.getX();
+        double y = player.getY();
+        double z = player.getZ();
+        Vec3 reach = new Vec3(side.getStepX() * REACH, 0.0D, side.getStepZ() * REACH);
+        for (double probe : PROBE) {
+            AABB slab = new AABB(x - PROBE_HALF, y + probe - SLAB, z - PROBE_HALF,
+                    x + PROBE_HALF, y + probe, z + PROBE_HALF);
+            AABB above = new AABB(x - PROBE_HALF, y + probe, z - PROBE_HALF,
+                    x + PROBE_HALF, y + H, z + PROBE_HALF);
+            if (!level.noCollision(player, slab.expandTowards(reach))
+                    && level.noCollision(player, above.expandTowards(reach))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static AABB catBox(Vec3 feet) {
